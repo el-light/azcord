@@ -1,0 +1,136 @@
+package com.azcord.services;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.azcord.dto.ChannelDTO;
+import com.azcord.dto.ServerCreateDTO;
+import com.azcord.dto.ServerDTO;
+import com.azcord.dto.UserRegistrationDTO;
+import com.azcord.models.Channel;
+import com.azcord.models.Invite;
+import com.azcord.models.Server;
+import com.azcord.models.User;
+import com.azcord.repositories.InviteRepository;
+import com.azcord.repositories.ServerRepository;
+import com.azcord.repositories.UserRepository;
+
+@Service
+public class ServerService {
+    
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    ServerRepository serverRepository; 
+
+    @Autowired
+    InviteRepository inviteRepository; 
+
+    public Server createServer(String name, String userCreator){
+
+        //we enforce uniqueness of the server name
+        if(serverRepository.findByName(name).isPresent()){
+            return null; 
+        }
+        
+        Server srv = new Server(); 
+        srv.setName(name); 
+        User user = userRepository.findByUsername(userCreator).orElseThrow(); 
+        srv.getUsers().add(user); 
+        return serverRepository.save(srv); 
+    }
+
+    public List<Server> getUserServers(String username){
+        return serverRepository.findByUsers_Username(username); 
+    }
+
+    //whatever is in the Server will be mapped to ServerDTO for exposure reasons
+    public void mapServerToDTO(Server server, ServerDTO serverDTO){
+        if(server==null){
+            return; 
+        }
+        serverDTO.setName(server.getName());
+        serverDTO.setMembers(server.getUsers().stream()
+        .map(name -> name.getUsername())
+        .collect(Collectors.toList()));
+
+        //we put all channels from server in form of ChannelDTO into ServerDTO, again exposure reasons
+        serverDTO.setChannels(
+            server.getChannels().stream()
+                  .map(ch -> {
+                     ChannelDTO cd = new ChannelDTO();
+                     cd.setId(ch.getId());
+                     cd.setName(ch.getName());
+                     return cd;
+                  })
+                  .collect(Collectors.toList())
+          );
+    }
+
+
+    //creating channel in the server
+    public Server createChannel(long server_id, String name){
+
+        Server srv = serverRepository.findById(server_id)
+            .orElseThrow(() -> new RuntimeException("Server not found"));
+        Channel channel = new Channel(); 
+        channel.setName(name);
+        srv.getChannels().add(channel); 
+        return serverRepository.save(srv);
+    }
+
+
+    public String generateUniqueCode(){
+        int attempt = 0 ; 
+        int max_attempts = 10; 
+        String code; 
+
+        do{
+            if(attempt++>=max_attempts){
+                throw new RuntimeException("Failed to generate invite code."); 
+            }
+                code = UUID.randomUUID().toString()
+                .replaceAll("-", "").substring(0,8); 
+        }while(inviteRepository.findByCode(code).isPresent());
+
+        return code; 
+    }
+
+
+    public Invite createInvite(long server_id , String username){
+
+        Server srv = serverRepository.findById(server_id)
+            .orElseThrow(() -> new RuntimeException("Server not found")); 
+        Invite invt = new Invite(); 
+        invt.setCreatedAt(LocalDateTime.now());
+        invt.setExpiresAt(LocalDateTime.now().plusDays(7));
+        invt.setGeneratedBy(username);
+        invt.setServer(srv);
+        invt.setCode(generateUniqueCode());
+        return inviteRepository.save(invt); 
+    }
+
+    public Server joinWithInvite(String username, String code){
+        Invite invite = inviteRepository.findByCode(code)
+            .orElseThrow(() -> new RuntimeException("Invalid link"));
+
+        if(invite.getExpiresAt() != null && LocalDateTime.now().isAfter(invite.getExpiresAt())){
+            throw new RuntimeException("Invitation is expired"); 
+        }
+
+        Server server = invite.getServer(); 
+        User user = userRepository.findByUsername(username).orElse(null);
+        if(user != null && !server.getUsers().contains(user)){
+            server.getUsers().add(user); 
+            return serverRepository.save(server);
+        }
+        
+        return server;
+    }
+}
