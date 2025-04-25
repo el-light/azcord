@@ -19,6 +19,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.GONE).body(ex.getMessage());
     }
 
+    @ExceptionHandler(DuplicateServerNameException.class)
+    public ResponseEntity<String> handleDuplicateName(DuplicateServerNameException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
 
-    
 }

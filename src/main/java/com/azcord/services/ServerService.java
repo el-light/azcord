@@ -12,6 +12,8 @@ import com.azcord.dto.ChannelDTO;
 import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.dto.UserRegistrationDTO;
+import com.azcord.exceptions.InviteExpiredException;
+import com.azcord.exceptions.InviteNotFoundException;
 import com.azcord.models.Channel;
 import com.azcord.models.Invite;
 import com.azcord.models.Server;
@@ -118,10 +120,10 @@ public class ServerService {
 
     public Server joinWithInvite(String username, String code){
         Invite invite = inviteRepository.findByCode(code)
-            .orElseThrow(() -> new RuntimeException("Invalid link"));
+            .orElseThrow(() -> new InviteNotFoundException("Invalid link"));
 
         if(invite.getExpiresAt() != null && LocalDateTime.now().isAfter(invite.getExpiresAt())){
-            throw new RuntimeException("Invitation is expired"); 
+            throw new InviteExpiredException("Invitation is expired"); 
         }
 
         Server server = invite.getServer(); 

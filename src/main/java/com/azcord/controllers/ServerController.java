@@ -18,11 +18,14 @@ import com.azcord.dto.ChannelCreateDTO;
 import com.azcord.dto.InviteJoinDTO;
 import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
+import com.azcord.exceptions.DuplicateServerNameException;
 import com.azcord.models.Invite;
 import com.azcord.models.Server;
 import com.azcord.models.User;
 import com.azcord.services.ServerService;
 import com.azcord.services.UserService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/servers")
@@ -33,14 +36,13 @@ public class ServerController {
 
     //create a server 
     @PostMapping()
-    public ResponseEntity<?> createServer(@RequestBody ServerCreateDTO serverCreateDTO){
+    public ResponseEntity<?> createServer(@Valid @RequestBody ServerCreateDTO serverCreateDTO){
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName(); 
         Server srv = serverService.createServer(serverCreateDTO.getName(), username);
 
         if (srv == null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body("Server with such a name already exists!");
+            throw new DuplicateServerNameException("Server with this name already exists.");
           }          
         ServerDTO serverDTO = new ServerDTO(); 
         serverService.mapServerToDTO(srv, serverDTO);
