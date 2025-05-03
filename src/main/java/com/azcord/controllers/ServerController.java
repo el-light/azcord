@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.azcord.dto.ChannelCreateDTO;
 import com.azcord.dto.InviteJoinDTO;
+import com.azcord.dto.RoleCreateDTO;
 import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.exceptions.DuplicateServerNameException;
@@ -32,7 +33,10 @@ import jakarta.validation.Valid;
 public class ServerController {
 
     @Autowired
-    private ServerService serverService;    
+    private ServerService serverService;  
+    
+    @Autowired
+    private UserService userService; 
 
     //create a server 
     @PostMapping()
@@ -85,4 +89,27 @@ public class ServerController {
         serverService.joinWithInvite(username, inviteJoinDTO.getCode()); 
         return new ResponseEntity<String>("You succesfully joined the server", HttpStatus.OK); 
     } 
+
+    @PostMapping("/{id}/roles")
+    public ResponseEntity<?> createRole(@PathVariable("id") Long id,@Valid @RequestBody RoleCreateDTO roleCreateDTO){
+        String colorHex = roleCreateDTO.getColor_hex();
+        if(colorHex==null|| colorHex.isBlank()){
+            colorHex = "#808080";
+        }
+        serverService.createRole(id, roleCreateDTO.getName(), colorHex);
+        return ResponseEntity.ok("Role " + roleCreateDTO.getName() + " created!");
+    }
+
+    @PostMapping("/{id}/roles/{role_id}/members")
+    public ResponseEntity<?> addRoleToUser(@PathVariable("id") Long id, @PathVariable("role_id") Long role_id){
+        String username = SecurityContextHolder.getContext().getAuthentication().getName(); 
+        serverService.assignRole(role_id, username, id); 
+        return ResponseEntity.ok("Role added to user " + username); 
+    }
+    //get roles of 1 user on 1 server
+    @GetMapping("/{id}/roles/{user_id}")
+    public ResponseEntity<?> getUsersRoles(@PathVariable("id") Long server_id, @PathVariable("user_id") Long id){
+        User user = userService.getUserById(id); 
+        return new ResponseEntity<>(serverService.getUsersRolesOnTheServer(user.getUsername(),server_id), HttpStatus.OK);
+    }
 }
