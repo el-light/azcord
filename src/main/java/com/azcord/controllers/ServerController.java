@@ -100,6 +100,8 @@ public class ServerController {
         return ResponseEntity.ok("Role " + roleCreateDTO.getName() + " created!");
     }
 
+
+    //add role for the user on one server
     @PostMapping("/{id}/roles/{role_id}/members")
     public ResponseEntity<?> addRoleToUser(@PathVariable("id") Long id, @PathVariable("role_id") Long role_id){
         String username = SecurityContextHolder.getContext().getAuthentication().getName(); 
