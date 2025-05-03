@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.azcord.dto.ChannelDTO;
+import com.azcord.dto.RoleDTO;
 import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.dto.UserRegistrationDTO;
@@ -189,5 +190,15 @@ public class ServerService {
     public List<Role> getUsersRolesOnTheServer(String username, Long server_id){
         return roleRepository.findByUsers_UsernameAndServer_Id(username, server_id)
             .orElseThrow(() -> new RuntimeException("Roles not found"));
+    }
+
+    //map Role to dto
+    public void mapRoleToDTO(Role role, RoleDTO roleDTO){
+        if(role == null || roleDTO == null){
+            return; 
+        }
+        roleDTO.setId(role.getId());
+        roleDTO.setName(role.getName());
+        roleDTO.setColor_Hex(role.getColorHex()); 
     }
 }
