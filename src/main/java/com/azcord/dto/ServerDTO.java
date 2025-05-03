@@ -2,8 +2,6 @@ package com.azcord.dto;
 
 import java.util.List;
 
-import com.azcord.models.Channel;
-
 public class ServerDTO {
 
     private long server_id; 

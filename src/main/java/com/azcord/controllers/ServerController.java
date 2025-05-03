@@ -7,9 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -84,5 +86,49 @@ public class ServerController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName(); 
         serverService.joinWithInvite(username, inviteJoinDTO.getCode()); 
         return new ResponseEntity<String>("You succesfully joined the server", HttpStatus.OK); 
-    } 
+    }
+    
+    // New endpoints
+    
+    // 1. Change server name
+    @PutMapping("/{id}/name")
+    public ResponseEntity<?> updateServerName(@PathVariable("id") Long id, @Valid @RequestBody ServerCreateDTO serverUpdateDTO) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Server updatedServer = serverService.updateServerName(id, serverUpdateDTO.getName(), username);
+        
+        if (updatedServer == null) {
+            throw new DuplicateServerNameException("Server with this name already exists.");
+        }
+        
+        ServerDTO serverDTO = new ServerDTO();
+        serverService.mapServerToDTO(updatedServer, serverDTO);
+        return new ResponseEntity<>(serverDTO, HttpStatus.OK);
+    }
+    
+    // 2. Delete server
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteServer(@PathVariable("id") Long id) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.deleteServer(id, username);
+        return new ResponseEntity<>("Server successfully deleted", HttpStatus.OK);
+    }
+    
+    // 3. Delete channel
+    @DeleteMapping("/{serverId}/channels/{channelId}")
+    public ResponseEntity<?> deleteChannel(@PathVariable("serverId") Long serverId, 
+                                          @PathVariable("channelId") Long channelId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.deleteChannel(serverId, channelId, username);
+        return new ResponseEntity<>("Channel successfully deleted", HttpStatus.OK);
+    }
+    
+    // 4. Change channel name
+    @PutMapping("/{serverId}/channels/{channelId}")
+    public ResponseEntity<?> updateChannelName(@PathVariable("serverId") Long serverId,
+                                              @PathVariable("channelId") Long channelId,
+                                              @Valid @RequestBody ChannelCreateDTO channelUpdateDTO) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.updateChannelName(serverId, channelId, channelUpdateDTO.getName(), username);
+        return new ResponseEntity<>("Channel name updated successfully", HttpStatus.OK);
+    }
 }
