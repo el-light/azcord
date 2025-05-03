@@ -193,12 +193,14 @@ public class ServerService {
     }
 
     //map Role to dto
-    public void mapRoleToDTO(Role role, RoleDTO roleDTO){
-        if(role == null || roleDTO == null){
-            return; 
+    public RoleDTO mapRoleToDTO(Role role){
+        if(role == null){
+            throw new RoleNotFoundException("Role not found"); 
         }
+        RoleDTO roleDTO = new RoleDTO(); 
         roleDTO.setId(role.getId());
         roleDTO.setName(role.getName());
-        roleDTO.setColor_Hex(role.getColorHex()); 
+        roleDTO.setColor_Hex(role.getColorHex());
+        return roleDTO; 
     }
 }

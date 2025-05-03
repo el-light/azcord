@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.azcord.dto.ChannelCreateDTO;
 import com.azcord.dto.InviteJoinDTO;
 import com.azcord.dto.RoleCreateDTO;
+import com.azcord.dto.RoleDTO;
 import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.exceptions.DuplicateServerNameException;
@@ -102,16 +103,30 @@ public class ServerController {
 
 
     //add role for the user on one server
-    @PostMapping("/{id}/roles/{role_id}/members")
-    public ResponseEntity<?> addRoleToUser(@PathVariable("id") Long id, @PathVariable("role_id") Long role_id){
-        String username = SecurityContextHolder.getContext().getAuthentication().getName(); 
+    @PostMapping("/{id}/roles/{role_id}/members/{user_id}")
+    public ResponseEntity<?> addRoleToUser(
+        @PathVariable("id") Long id, 
+        @PathVariable("role_id") Long role_id,
+        @PathVariable("user_id") Long user_id){
+        String username = userService.getUserById(id).getUsername();  
         serverService.assignRole(role_id, username, id); 
         return ResponseEntity.ok("Role added to user " + username); 
     }
+
+
     //get roles of 1 user on 1 server
     @GetMapping("/{id}/roles/{user_id}")
     public ResponseEntity<?> getUsersRoles(@PathVariable("id") Long server_id, @PathVariable("user_id") Long id){
         User user = userService.getUserById(id); 
-        return new ResponseEntity<>(serverService.getUsersRolesOnTheServer(user.getUsername(),server_id), HttpStatus.OK);
+        List<RoleDTO> roleDTOs = serverService.getUsersRolesOnTheServer(user.getUsername(),server_id).stream()
+            .map(role -> {
+                RoleDTO roleDTO = new RoleDTO();
+                roleDTO.setColor_Hex(role.getColorHex());
+                roleDTO.setId(role.getId());
+                roleDTO.setName(role.getName());
+                return roleDTO;  
+            }).collect(Collectors.toList());
+
+        return new ResponseEntity<>(roleDTOs, HttpStatus.OK);
     }
 }
