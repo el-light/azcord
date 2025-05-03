@@ -1,6 +1,5 @@
 package com.azcord.models;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -33,13 +32,16 @@ public class User {
 
     private String password; 
 
+
+    //we MAY have same roles for different servers
+    //BUT we may also have roles with the same name and different colours
     @ManyToMany(fetch= FetchType.EAGER, cascade= CascadeType.ALL)
     @JoinTable(
         name = "user_roles",
         joinColumns= @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    private Set<Role> roles = new HashSet<>();
+    private List<Role> roles = new ArrayList<>();
 
     @ManyToMany(mappedBy = "users")
     private List<Server> servers = new ArrayList<>();
@@ -77,11 +79,11 @@ public class User {
         this.password = password;
     }
 
-    public Set<Role> getRoles() {
+    public List<Role> getRoles() {
         return roles;
     }
 
-    public void setRoles(Set<Role> roles) {
+    public void setRoles(List<Role> roles) {
         this.roles = roles;
     }
 
