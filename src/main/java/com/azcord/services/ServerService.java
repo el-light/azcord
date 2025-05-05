@@ -6,15 +6,18 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.azcord.dto.ChannelDTO;
 import com.azcord.dto.RoleDTO;
 import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
-import com.azcord.dto.UserRegistrationDTO;
 import com.azcord.exceptions.InviteExpiredException;
 import com.azcord.exceptions.InviteNotFoundException;
+
+import com.azcord.exceptions.ResourceNotFoundException;
 import com.azcord.exceptions.RoleNotFoundException;
 import com.azcord.exceptions.ServerNotFoundException;
 import com.azcord.models.Channel;
@@ -26,6 +29,8 @@ import com.azcord.repositories.InviteRepository;
 import com.azcord.repositories.RoleRepository;
 import com.azcord.repositories.ServerRepository;
 import com.azcord.repositories.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Service
 public class ServerService {
@@ -37,7 +42,20 @@ public class ServerService {
     ServerRepository serverRepository; 
 
     @Autowired
-    InviteRepository inviteRepository; 
+    InviteRepository inviteRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
+    
+    // Helper method to check if user has permission to modify a server
+    private void checkServerPermission(Server server, String username) {
+        boolean isMember = server.getUsers().stream()
+            .anyMatch(user -> user.getUsername().equals(username));
+            
+        if (!isMember) {
+            throw new AccessDeniedException("You don't have permission to modify this server");
+        }
+    }
 
     @Autowired
     RoleRepository roleRepository; 
@@ -65,6 +83,7 @@ public class ServerService {
         if(server==null){
             return; 
         }
+        serverDTO.setServer_id(server.getId());
         serverDTO.setName(server.getName());
         serverDTO.setMembers(server.getUsers().stream()
         .map(name -> name.getUsername())
@@ -89,9 +108,10 @@ public class ServerService {
     public Server createChannel(long server_id, String name){
 
         Server srv = serverRepository.findById(server_id)
-            .orElseThrow(() -> new RuntimeException("Server not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
         Channel channel = new Channel(); 
         channel.setName(name);
+        channel.setServer(srv);
         srv.getChannels().add(channel); 
         return serverRepository.save(srv);
     }
@@ -117,7 +137,7 @@ public class ServerService {
     public Invite createInvite(long server_id , String username){
 
         Server srv = serverRepository.findById(server_id)
-            .orElseThrow(() -> new RuntimeException("Server not found")); 
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found")); 
         Invite invt = new Invite(); 
         invt.setCreatedAt(LocalDateTime.now());
         invt.setExpiresAt(LocalDateTime.now().plusDays(7));
@@ -144,6 +164,88 @@ public class ServerService {
         
         return server;
     }
+    
+    // New methods for required endpoints
+    
+    // 1. Change server name
+    public Server updateServerName(Long serverId, String newName, String username) {
+        Server server = serverRepository.findById(serverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
+        
+        // Check if user has permission
+        checkServerPermission(server, username);
+        
+        // Check if the new name already exists for another server
+        if(!server.getName().equals(newName) && serverRepository.findByName(newName).isPresent()) {
+            return null; // Name already exists
+        }
+        
+        server.setName(newName);
+        return serverRepository.save(server);
+    }
+    
+    // 2. Delete server - FIXED to handle invite records
+    @Transactional
+    public void deleteServer(Long serverId, String username) {
+        Server server = serverRepository.findById(serverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
+        
+        // Check if user has permission
+        checkServerPermission(server, username);
+        
+        // First, delete all invite records associated with this server
+        List<Invite> invites = inviteRepository.findByServer_Id(serverId);
+        inviteRepository.deleteAll(invites);
+        
+        // Clear the relationship between server and users to avoid cascade delete issues
+        server.getUsers().clear();
+        serverRepository.save(server);
+        
+        // Now delete the server
+        serverRepository.delete(server);
+    }
+    
+    // 3. Delete channel
+    @Transactional
+    public void deleteChannel(Long serverId, Long channelId, String username) {
+        Server server = serverRepository.findById(serverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
+        
+        // Check if user has permission
+        checkServerPermission(server, username);
+        
+        // Find the channel to remove
+        Channel channelToRemove = server.getChannels().stream()
+            .filter(channel -> channel.getId() == channelId)
+            .findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Channel not found in this server"));
+        
+        // Remove channel from server's collection
+        server.getChannels().remove(channelToRemove);
+        
+        // Save the server with updated channel list
+        serverRepository.save(server);
+        
+        // Now delete the channel entity from the database
+        entityManager.remove(channelToRemove);
+    }
+    
+    // 4. Change channel name
+    public Server updateChannelName(Long serverId, Long channelId, String newName, String username) {
+        Server server = serverRepository.findById(serverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
+        
+        // Check if user has permission
+        checkServerPermission(server, username);
+        
+        // Find and update the channel
+        Channel channelToUpdate = server.getChannels().stream()
+            .filter(channel -> channel.getId() == channelId)
+            .findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Channel not found in this server"));
+        
+        channelToUpdate.setName(newName);
+        return serverRepository.save(server);
 
 
     public Role createRole(Long server_id, String name, String colourHex){

@@ -1,6 +1,5 @@
 package com.azcord.models;
 
-import java.util.HashMap;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -17,8 +16,17 @@ import lombok.Data;
 
 @Entity
 @Data
+
+
+
+
+
+
 public class Role {
 
+    
+
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id; 
@@ -27,7 +35,9 @@ public class Role {
 
     @ManyToMany(mappedBy = "roles")
     private Set<User> users;  
-
+  
+    @ManyToOne
+    @JoinColumn(name = "server_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Server server; 
 
