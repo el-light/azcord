@@ -36,3 +36,13 @@ public class GlobalExceptionHandler {
     }
 
 }
+    @ExceptionHandler(ServerNotFoundException.class)
+    public ResponseEntity<String> handleServerNotFound(ServerNotFoundException ex){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());    
+    } 
+
+    @ExceptionHandler(RoleNotFoundException.class)
+    public ResponseEntity<String> handleRoleNotFound(RoleNotFoundException ex){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());    
+    } 
+}

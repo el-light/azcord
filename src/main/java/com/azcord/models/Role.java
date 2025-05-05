@@ -2,7 +2,10 @@ package com.azcord.models;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,13 +35,30 @@ public class Role {
 
     @ManyToMany(mappedBy = "roles")
     private Set<User> users;  
-
+  
     @ManyToOne
     @JoinColumn(name = "server_id")
+    @ManyToOne(fetch = FetchType.LAZY)
     private Server server; 
 
     //define colour of the username in the server
     private String colorHex;
+
+    public void setServer(Server server) {
+        this.server = server;
+    }
+
+    public Server getServer() {
+        return server;
+    }
+
+    public String getColorHex() {
+        return colorHex;
+    }
+
+    public void setColorHex(String colorHex) {
+        this.colorHex = colorHex;
+    }
 
     public long getId() {
         return id;

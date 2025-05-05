@@ -11,15 +11,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.azcord.dto.ChannelDTO;
+import com.azcord.dto.RoleDTO;
+import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.exceptions.InviteExpiredException;
 import com.azcord.exceptions.InviteNotFoundException;
+
 import com.azcord.exceptions.ResourceNotFoundException;
+import com.azcord.exceptions.RoleNotFoundException;
+import com.azcord.exceptions.ServerNotFoundException;
 import com.azcord.models.Channel;
 import com.azcord.models.Invite;
+import com.azcord.models.Role;
 import com.azcord.models.Server;
 import com.azcord.models.User;
 import com.azcord.repositories.InviteRepository;
+import com.azcord.repositories.RoleRepository;
 import com.azcord.repositories.ServerRepository;
 import com.azcord.repositories.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -49,6 +56,9 @@ public class ServerService {
             throw new AccessDeniedException("You don't have permission to modify this server");
         }
     }
+
+    @Autowired
+    RoleRepository roleRepository; 
 
     public Server createServer(String name, String userCreator){
 
@@ -90,6 +100,7 @@ public class ServerService {
                   })
                   .collect(Collectors.toList())
           );
+          serverDTO.setServer_id(server.getId());
     }
 
 
@@ -235,5 +246,63 @@ public class ServerService {
         
         channelToUpdate.setName(newName);
         return serverRepository.save(server);
+
+
+    public Role createRole(Long server_id, String name, String colourHex){
+        Server server = serverRepository.findById(server_id)
+            .orElseThrow(() -> new ServerNotFoundException("Server not found"));
+
+        Role r = roleRepository.findByNameAndServer_Id(name,server_id).orElse(null);
+        if(r !=null){
+            if(r.getColorHex().equals(colourHex)){
+                return null; 
+            }
+        }
+        Role role = new Role(); 
+        role.setName(name);
+        role.setColorHex(colourHex);
+        role.setServer(server); 
+        return roleRepository.save(role); 
+    }
+
+
+    public void assignRole(Long role_id, String username, Long server_id) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        //roles of 1 user on 1 server 
+        List<Role> roles = roleRepository.findByUsers_UsernameAndServer_Id(username, server_id)
+            .orElse(null); 
+        if(roles == null){
+            roles = List.of(); 
+        }
+        //we check if user already has role with same id (aka same role aka same name same colour)
+        List<Long> ids = roles.stream().map(r -> r.getId()).collect(Collectors.toList());
+
+        if(ids.contains(role_id)){
+            return; 
+        }
+
+            Role role = roleRepository.findById(role_id).orElseThrow(() -> new RoleNotFoundException("Role not found"));
+            user.getRoles().add(role);
+            userRepository.save(user); 
+        
+    }
+
+    //get roles of 1 USER ON 1 SERVER 
+    public List<Role> getUsersRolesOnTheServer(String username, Long server_id){
+        return roleRepository.findByUsers_UsernameAndServer_Id(username, server_id)
+            .orElseThrow(() -> new RuntimeException("Roles not found"));
+    }
+
+    //map Role to dto
+    public RoleDTO mapRoleToDTO(Role role){
+        if(role == null){
+            throw new RoleNotFoundException("Role not found"); 
+        }
+        RoleDTO roleDTO = new RoleDTO(); 
+        roleDTO.setId(role.getId());
+        roleDTO.setName(role.getName());
+        roleDTO.setColor_Hex(role.getColorHex());
+        return roleDTO; 
     }
 }

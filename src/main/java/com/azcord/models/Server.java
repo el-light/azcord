@@ -19,7 +19,6 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Entity
-@Data
 public class Server {
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
