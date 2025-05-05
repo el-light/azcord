@@ -173,7 +173,7 @@ public class ServerService {
         return serverRepository.save(server);
     }
     
-    // 2. Delete server - FIXED
+    // 2. Delete server - FIXED to handle invite records
     @Transactional
     public void deleteServer(Long serverId, String username) {
         Server server = serverRepository.findById(serverId)
@@ -182,7 +182,11 @@ public class ServerService {
         // Check if user has permission
         checkServerPermission(server, username);
         
-        // First, clear the relationship between server and users to avoid cascade delete
+        // First, delete all invite records associated with this server
+        List<Invite> invites = inviteRepository.findByServer_Id(serverId);
+        inviteRepository.deleteAll(invites);
+        
+        // Clear the relationship between server and users to avoid cascade delete issues
         server.getUsers().clear();
         serverRepository.save(server);
         
@@ -190,7 +194,7 @@ public class ServerService {
         serverRepository.delete(server);
     }
     
-    // 3. Delete channel - FIXED
+    // 3. Delete channel
     @Transactional
     public void deleteChannel(Long serverId, Long channelId, String username) {
         Server server = serverRepository.findById(serverId)

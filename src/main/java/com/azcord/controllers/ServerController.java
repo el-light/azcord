@@ -23,9 +23,7 @@ import com.azcord.dto.ServerDTO;
 import com.azcord.exceptions.DuplicateServerNameException;
 import com.azcord.models.Invite;
 import com.azcord.models.Server;
-import com.azcord.models.User;
 import com.azcord.services.ServerService;
-import com.azcord.services.UserService;
 
 import jakarta.validation.Valid;
 
