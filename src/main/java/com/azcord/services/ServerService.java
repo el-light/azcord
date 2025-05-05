@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.azcord.dto.ChannelDTO;
 import com.azcord.dto.ServerDTO;
@@ -21,6 +22,8 @@ import com.azcord.models.User;
 import com.azcord.repositories.InviteRepository;
 import com.azcord.repositories.ServerRepository;
 import com.azcord.repositories.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Service
 public class ServerService {
@@ -32,7 +35,10 @@ public class ServerService {
     ServerRepository serverRepository; 
 
     @Autowired
-    InviteRepository inviteRepository; 
+    InviteRepository inviteRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
     
     // Helper method to check if user has permission to modify a server
     private void checkServerPermission(Server server, String username) {
@@ -167,7 +173,8 @@ public class ServerService {
         return serverRepository.save(server);
     }
     
-    // 2. Delete server
+    // 2. Delete server - FIXED
+    @Transactional
     public void deleteServer(Long serverId, String username) {
         Server server = serverRepository.findById(serverId)
             .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
@@ -175,13 +182,16 @@ public class ServerService {
         // Check if user has permission
         checkServerPermission(server, username);
         
-        // In a real application, you might want to implement more complex permissions
-        // such as checking if the user is the owner or has admin rights
+        // First, clear the relationship between server and users to avoid cascade delete
+        server.getUsers().clear();
+        serverRepository.save(server);
         
+        // Now delete the server
         serverRepository.delete(server);
     }
     
-    // 3. Delete channel
+    // 3. Delete channel - FIXED
+    @Transactional
     public void deleteChannel(Long serverId, Long channelId, String username) {
         Server server = serverRepository.findById(serverId)
             .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
@@ -189,14 +199,20 @@ public class ServerService {
         // Check if user has permission
         checkServerPermission(server, username);
         
-        // Find and remove the channel
-        boolean channelRemoved = server.getChannels().removeIf(channel -> channel.getId() == channelId);
+        // Find the channel to remove
+        Channel channelToRemove = server.getChannels().stream()
+            .filter(channel -> channel.getId() == channelId)
+            .findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Channel not found in this server"));
         
-        if (!channelRemoved) {
-            throw new ResourceNotFoundException("Channel not found in this server");
-        }
+        // Remove channel from server's collection
+        server.getChannels().remove(channelToRemove);
         
+        // Save the server with updated channel list
         serverRepository.save(server);
+        
+        // Now delete the channel entity from the database
+        entityManager.remove(channelToRemove);
     }
     
     // 4. Change channel name
