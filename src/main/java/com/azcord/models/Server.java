@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,20 +19,20 @@ import jakarta.validation.constraints.NotBlank;
 
 @Entity
 public class Server {
-    
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
-
+  
     @NotBlank
     @Column(unique= true)
-    private String name; 
-
-    //we don't specifically need channels to exist in our server intitially
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private List<Channel> channels = new ArrayList<>(); 
-
-    @ManyToMany(fetch = FetchType.LAZY,cascade= CascadeType.ALL)
+    private String name;
+    
+    // Modified: Changed cascade type to not include REMOVE/DELETE operations
+    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private List<Channel> channels = new ArrayList<>();
+    
+    // Modified: Changed cascade type to remove ALL and specifically exclude REMOVE/DELETE operations
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "server_users",
         joinColumns= @JoinColumn(name = "server_id"),
@@ -55,31 +54,31 @@ public class Server {
     public long getId() {
         return id;
     }
-
+    
     public void setId(long id) {
         this.id = id;
     }
-
+    
     public String getName() {
         return name;
     }
-
+    
     public void setName(String name) {
         this.name = name;
     }
-
+    
     public List<Channel> getChannels() {
         return channels;
     }
-
+    
     public void setChannels(List<Channel> channels) {
         this.channels = channels;
     }
-
+    
     public Set<User> getUsers() {
         return users;
     }
-
+    
     public void setUsers(Set<User> users) {
         this.users = users;
     }

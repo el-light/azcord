@@ -27,9 +27,7 @@ import com.azcord.exceptions.DuplicateServerNameException;
 import com.azcord.models.Invite;
 import com.azcord.models.Permission;
 import com.azcord.models.Server;
-import com.azcord.models.User;
 import com.azcord.services.ServerService;
-import com.azcord.services.UserService;
 
 import jakarta.validation.Valid;
 
@@ -93,6 +91,50 @@ public class ServerController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName(); 
         serverService.joinWithInvite(username, inviteJoinDTO.getCode()); 
         return new ResponseEntity<String>("You succesfully joined the server", HttpStatus.OK); 
+    }
+    
+    // New endpoints
+    
+    // 1. Change server name
+    @PutMapping("/{id}/name")
+    public ResponseEntity<?> updateServerName(@PathVariable("id") Long id, @Valid @RequestBody ServerCreateDTO serverUpdateDTO) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Server updatedServer = serverService.updateServerName(id, serverUpdateDTO.getName(), username);
+        
+        if (updatedServer == null) {
+            throw new DuplicateServerNameException("Server with this name already exists.");
+        }
+        
+        ServerDTO serverDTO = new ServerDTO();
+        serverService.mapServerToDTO(updatedServer, serverDTO);
+        return new ResponseEntity<>(serverDTO, HttpStatus.OK);
+    }
+    
+    // 2. Delete server
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteServer(@PathVariable("id") Long id) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.deleteServer(id, username);
+        return new ResponseEntity<>("Server successfully deleted", HttpStatus.OK);
+    }
+    
+    // 3. Delete channel
+    @DeleteMapping("/{serverId}/channels/{channelId}")
+    public ResponseEntity<?> deleteChannel(@PathVariable("serverId") Long serverId, 
+                                          @PathVariable("channelId") Long channelId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.deleteChannel(serverId, channelId, username);
+        return new ResponseEntity<>("Channel successfully deleted", HttpStatus.OK);
+    }
+    
+    // 4. Change channel name
+    @PutMapping("/{serverId}/channels/{channelId}")
+    public ResponseEntity<?> updateChannelName(@PathVariable("serverId") Long serverId,
+                                              @PathVariable("channelId") Long channelId,
+                                              @Valid @RequestBody ChannelCreateDTO channelUpdateDTO) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.updateChannelName(serverId, channelId, channelUpdateDTO.getName(), username);
+        return new ResponseEntity<>("Channel name updated successfully", HttpStatus.OK);
     } 
 
     @PostMapping("/{id}/roles")
