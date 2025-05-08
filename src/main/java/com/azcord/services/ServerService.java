@@ -272,7 +272,7 @@ public class ServerService {
         
         channelToUpdate.setName(newName);
         return serverRepository.save(server);
-
+    }
 
     @PreAuthorize("@serverService.hasPermission(#server_id, authentication.name, T(com.azcord.models.Permission).MANAGE_ROLES)")
     public Role createRole(Long server_id, String name, String colourHex, Set<Permission> permissions){
