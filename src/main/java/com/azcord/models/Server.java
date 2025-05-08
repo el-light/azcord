@@ -16,14 +16,13 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
 
 @Entity
 public class Server {
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private long id;
-    
+    private Long id;
+  
     @NotBlank
     @Column(unique= true)
     private String name;
@@ -40,11 +39,18 @@ public class Server {
         inverseJoinColumns= @JoinColumn(name = "user_id")
     )
     private Set<User> users = new HashSet<>();
-    
-    // Modified: Same as above
-    @OneToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+
+    @OneToMany(mappedBy = "server",fetch = FetchType.LAZY, cascade=CascadeType.ALL)
     private Set<Role> roles = new HashSet<>();
-    
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+
     public long getId() {
         return id;
     }

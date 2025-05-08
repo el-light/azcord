@@ -21,7 +21,7 @@ import jakarta.persistence.ManyToMany;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(unique=true)
     private String username; 
@@ -46,7 +46,7 @@ public class User {
     private List<Server> servers = new ArrayList<>();
 
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
 

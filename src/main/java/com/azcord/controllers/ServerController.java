@@ -20,10 +20,12 @@ import com.azcord.dto.ChannelCreateDTO;
 import com.azcord.dto.InviteJoinDTO;
 import com.azcord.dto.RoleCreateDTO;
 import com.azcord.dto.RoleDTO;
+import com.azcord.dto.RoleUpdateDTO;
 import com.azcord.dto.ServerCreateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.exceptions.DuplicateServerNameException;
 import com.azcord.models.Invite;
+import com.azcord.models.Permission;
 import com.azcord.models.Server;
 import com.azcord.services.ServerService;
 
@@ -71,7 +73,7 @@ public class ServerController {
     }
 
     @PostMapping("/{id}/channels")
-    public ResponseEntity<?> createChannel(@PathVariable("id") long id , @RequestBody ChannelCreateDTO channelCreateDTO){
+    public ResponseEntity<?> createChannel(@PathVariable("id") Long id , @RequestBody ChannelCreateDTO channelCreateDTO){
         serverService.createChannel(id, channelCreateDTO.getName()); 
         return ResponseEntity.ok("Channel " + channelCreateDTO.getName() + " created!");
     }
@@ -141,7 +143,7 @@ public class ServerController {
         if(colorHex==null|| colorHex.isBlank()){
             colorHex = "#808080";
         }
-        serverService.createRole(id, roleCreateDTO.getName(), colorHex);
+        serverService.createRole(id, roleCreateDTO.getName(), colorHex, roleCreateDTO.getPermissions());
         return ResponseEntity.ok("Role " + roleCreateDTO.getName() + " created!");
     }
 
@@ -152,25 +154,99 @@ public class ServerController {
         @PathVariable("id") Long id, 
         @PathVariable("role_id") Long role_id,
         @PathVariable("user_id") Long user_id){
-        String username = userService.getUserById(id).getUsername();  
+        String username = userService.getUserById(user_id).getUsername();  
         serverService.assignRole(role_id, username, id); 
         return ResponseEntity.ok("Role added to user " + username); 
     }
 
 
-    //get roles of 1 user on 1 server
+    //get roles of 1 user on 1 server with permissions if you are allowed
     @GetMapping("/{id}/roles/{user_id}")
     public ResponseEntity<?> getUsersRoles(@PathVariable("id") Long server_id, @PathVariable("user_id") Long id){
-        User user = userService.getUserById(id); 
-        List<RoleDTO> roleDTOs = serverService.getUsersRolesOnTheServer(user.getUsername(),server_id).stream()
-            .map(role -> {
-                RoleDTO roleDTO = new RoleDTO();
-                roleDTO.setColor_Hex(role.getColorHex());
-                roleDTO.setId(role.getId());
-                roleDTO.setName(role.getName());
-                return roleDTO;  
-            }).collect(Collectors.toList());
+        User targetUser = userService.getUserById(id);
+        String authUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User requestingUser = userService.getUserByName(authUsername);   
+        List<RoleDTO> roleDTOs = serverService.getUsersRolesOnTheServer(targetUser.getUsername(),server_id).stream()
+            .map(role -> serverService.mapRoleToDTO(role, requestingUser, targetUser, server_id)).collect(Collectors.toList());
 
         return new ResponseEntity<>(roleDTOs, HttpStatus.OK);
     }
+
+        /**
+     * Updates an existing role on a server.
+     * Requires MANAGE_ROLES permission.
+     * @param serverId The ID of the server.
+     * @param roleId The ID of the role to update.
+     * @param roleUpdateDTO DTO containing fields to update.
+     * @return The updated RoleDTO.
+     */
+    @PutMapping("/{serverId}/roles/{roleId}")
+    public ResponseEntity<RoleDTO> updateRole(
+            @PathVariable("serverId") Long serverId,
+            @PathVariable("roleId") Long roleId,
+            @Valid @RequestBody RoleUpdateDTO roleUpdateDTO) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        RoleDTO updatedRoleDTO = serverService.updateRole(serverId, roleId, roleUpdateDTO, username);
+        return ResponseEntity.ok(updatedRoleDTO);
+    }
+
+    /**
+     * Deletes a role from a server.
+     * Requires MANAGE_ROLES permission.
+     * @param serverId The ID of the server.
+     * @param roleId The ID of the role to delete.
+     * @return Confirmation message.
+     */
+    @DeleteMapping("/{serverId}/roles/{roleId}")
+    public ResponseEntity<String> deleteRole(
+            @PathVariable("serverId") Long serverId,
+            @PathVariable("roleId") Long roleId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.deleteRole(serverId, roleId, username);
+        return ResponseEntity.ok("Role with ID " + roleId + " deleted successfully from server " + serverId + ".");
+    }
+
+    /**
+     * Removes a specific role from a user on a given server.
+     * Requires MANAGE_ROLES permission.
+     * @param serverId The ID of the server.
+     * @param roleId The ID of the role to remove.
+     * @param userId The ID of the user from whom the role will be removed.
+     * @return Confirmation message.
+     */
+    @DeleteMapping("/{serverId}/roles/{roleId}/members/{userId}")
+    public ResponseEntity<String> removeRoleFromUser(
+            @PathVariable("serverId") Long serverId,
+            @PathVariable("roleId") Long roleId,
+            @PathVariable("userId") Long userId) {
+        String requestingUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.removeRoleFromUser(serverId, roleId, userId, requestingUsername);
+        User targetUser = userService.getUserById(userId); // to get username for message
+        return ResponseEntity.ok("Role successfully removed from user '" + targetUser.getUsername() + "' on server " + serverId + ".");
+    }
+
+    /**
+     * Retrieves all roles for a specific server.
+     * @param serverId The ID of the server.
+     * @return A list of RoleDTOs for the server.
+     */
+    @GetMapping("/{serverId}/roles")
+    public ResponseEntity<List<RoleDTO>> getAllServerRoles(@PathVariable("serverId") Long serverId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<RoleDTO> roleDTOs = serverService.getServerRoles(serverId, username);
+        return ResponseEntity.ok(roleDTOs);
+    }
+
+    // --- New Permissions Endpoint ---
+    /**
+     * Retrieves a list of all available permissions in the system.
+     * @return A list of all Permission enums.
+     */
+    @GetMapping("/permissions")
+    public ResponseEntity<List<Permission>> getAllPermissions() {
+        List<Permission> permissions = serverService.getAllPermissions();
+        return ResponseEntity.ok(permissions);
+    }
+
+
 }
