@@ -1,15 +1,11 @@
 package com.azcord.services;
 
-import javax.management.RuntimeErrorException;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.azcord.models.User;
 import com.azcord.repositories.UserRepository;
-
-import jakarta.validation.constraints.Null;
 
 @Service
 public class UserService {

@@ -18,4 +18,8 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     //find the role by its name on 1 server
     Optional<Role> findByNameAndServer_Id(String name, Long serverId); 
+
+    List<Role> findAllByServer_id(Long server_id); 
+    //return the role by its id and server id
+    Optional<Role> findByIdAndServer_Id(Long roleId, Long serverId);
 }

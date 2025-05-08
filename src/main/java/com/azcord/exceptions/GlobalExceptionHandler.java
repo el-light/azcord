@@ -1,9 +1,15 @@
 package com.azcord.exceptions;
 
+import java.nio.file.AccessDeniedException;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
 
 
 @ControllerAdvice
@@ -33,4 +39,28 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleRoleNotFound(RoleNotFoundException ex){
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());    
     } 
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex, WebRequest rq){
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.FORBIDDEN.value()); //403
+        body.put("reason",HttpStatus.FORBIDDEN.getReasonPhrase()); //FORBIDDEN
+        body.put("message", ex.getMessage()); 
+        body.put("path", rq.getDescription(false).substring(4));
+        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN); 
+    }
+
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<String> handleUserNotFound(UserNotFoundException ex){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());    
+    }
+
+    @ExceptionHandler(DuplicateRoleNameException.class)
+    public ResponseEntity<String> handleDuplicateRoleName(DuplicateRoleNameException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+    
 }
+

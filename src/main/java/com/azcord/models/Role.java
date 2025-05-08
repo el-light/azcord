@@ -1,11 +1,14 @@
 package com.azcord.models;
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,7 +24,7 @@ public class Role {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id; 
+    private Long id; 
 
     private String name; 
 
@@ -31,7 +34,25 @@ public class Role {
     @ManyToOne(fetch = FetchType.LAZY)
     private Server server; 
 
-    //define colour of the username in the server
+    //permissions for the role , we store them as strings in database
+    //but we can use them as enums in our code
+    @ElementCollection(targetClass = Permission.class, fetch = FetchType.EAGER) 
+    @CollectionTable(name = "role_permissions", joinColumns = @JoinColumn(name = "role_id"))
+    @Enumerated(EnumType.STRING) 
+    @Column(name = "permission", nullable = false) 
+    private Set<Permission> permissions = new HashSet<>();
+
+    public Set<Permission> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(Set<Permission> permissions) {
+        this.permissions = permissions;
+    }
+
+
+
+    //define colour of the role in the server
     private String colorHex;
 
     public void setServer(Server server) {
