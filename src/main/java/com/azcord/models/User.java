@@ -45,6 +45,18 @@ public class User {
     @ManyToMany(mappedBy = "users")
     private List<Server> servers = new ArrayList<>();
 
+    @ManyToMany(mappedBy = "participants", fetch = FetchType.LAZY)
+    private Set<DirectMessageChat> directMessageChats;
+
+    public Set<DirectMessageChat> getDirectMessageChats() {
+        return directMessageChats;
+    }
+
+    public void setDirectMessageChats(Set<DirectMessageChat> directMessageChats) {
+        this.directMessageChats = directMessageChats;
+    }
+
+
 
     public Long getId() {
         return id;
