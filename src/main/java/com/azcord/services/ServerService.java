@@ -17,9 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Important for operations involving multiple saves
 
 import com.azcord.dto.ChannelDTO;
-import com.azcord.dto.RoleCreateDTO; // Assuming this exists from your provided code
 import com.azcord.dto.RoleDTO;
-import com.azcord.dto.RoleUpdateDTO; // New DTO
+import com.azcord.dto.RoleUpdateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.exceptions.DuplicateRoleNameException; 
 
@@ -192,7 +191,7 @@ public class ServerService {
     }
     
     // New methods for required endpoints
-    
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).MANAGE_SERVERS)")
     // 1. Change server name
     public Server updateServerName(Long serverId, String newName, String username) {
         Server server = serverRepository.findById(serverId)
@@ -211,6 +210,7 @@ public class ServerService {
     }
     
     // 2. Delete server - FIXED to handle invite records
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).ADMINISTRATOR)")
     @Transactional
     public void deleteServer(Long serverId, String username) {
         Server server = serverRepository.findById(serverId)
@@ -232,6 +232,7 @@ public class ServerService {
     }
     
     // 3. Delete channel
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).MANAGE_CHANNELS)")
     @Transactional
     public void deleteChannel(Long serverId, Long channelId, String username) {
         Server server = serverRepository.findById(serverId)
@@ -257,6 +258,7 @@ public class ServerService {
     }
     
     // 4. Change channel name
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).MANAGE_CHANNELS)")
     public Server updateChannelName(Long serverId, Long channelId, String newName, String username) {
         Server server = serverRepository.findById(serverId)
             .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
