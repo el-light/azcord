@@ -35,9 +35,46 @@ public class MessageReaction {
         createdAt = LocalDateTime.now();
     }
 
-    // Ensure ReactionEmoji enum is used for validation if possible,
-    // but storing string allows future flexibility if needed (though current req is fixed set)
-    // For now, service layer will validate against ReactionEmoji enum.
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Message getMessage() {
+        return message;
+    }
+
+    public void setMessage(Message message) {
+        this.message = message;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getEmojiUnicode() {
+        return emojiUnicode;
+    }
+
+    public void setEmojiUnicode(String emojiUnicode) {
+        this.emojiUnicode = emojiUnicode;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 
     @Override
     public boolean equals(Object o) {

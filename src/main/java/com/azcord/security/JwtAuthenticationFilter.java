@@ -39,10 +39,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
         String path = req.getServletPath(); 
-        if(path.equals("/api/auth/login") ||path.equals("/api/auth/register") ){
-            chain.doFilter(req,res); 
+        if (path.equals("/api/auth/login") ||
+            path.equals("/api/auth/register") ||
+            path.startsWith("/ws")) { // If the path is for auth or WebSocket handshake utility calls
+            chain.doFilter(req, res); // Let it pass through without JWT header checks
             return;
         }
+
     
         String header = req.getHeader("Authorization"); 
 

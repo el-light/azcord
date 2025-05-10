@@ -1,8 +1,6 @@
 package com.azcord.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -13,8 +11,6 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-@Getter
-@Setter
 @Table(name = "messages")
 public class Message {
 
@@ -26,12 +22,12 @@ public class Message {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    @Column(columnDefinition = "TEXT") // For potentially long messages
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private MessageType messageType = MessageType.TEXT; // Default to text
+    private MessageType messageType = MessageType.TEXT;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -42,12 +38,10 @@ public class Message {
 
     private boolean edited = false;
 
-    // For channel messages
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "channel_id")
     private Channel channel;
 
-    // For direct messages (1-on-1 or group)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "direct_message_chat_id")
     private DirectMessageChat directMessageChat;
@@ -55,10 +49,9 @@ public class Message {
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Attachment> attachments = new ArrayList<>();
 
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Eager fetch for reactions might be okay if count is small
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<MessageReaction> reactions = new HashSet<>();
 
-    // If it's a reply to another message
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_message_id")
     private Message parentMessage;
@@ -66,6 +59,109 @@ public class Message {
     @OneToMany(mappedBy = "parentMessage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Message> replies = new ArrayList<>();
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getSender() {
+        return sender;
+    }
+
+    public void setSender(User sender) {
+        this.sender = sender;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public MessageType getMessageType() {
+        return messageType;
+    }
+
+    public void setMessageType(MessageType messageType) {
+        this.messageType = messageType;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public boolean isEdited() {
+        return edited;
+    }
+
+    public void setEdited(boolean edited) {
+        this.edited = edited;
+    }
+
+    public Channel getChannel() {
+        return channel;
+    }
+
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
+
+    public DirectMessageChat getDirectMessageChat() {
+        return directMessageChat;
+    }
+
+    public void setDirectMessageChat(DirectMessageChat directMessageChat) {
+        this.directMessageChat = directMessageChat;
+    }
+
+    public List<Attachment> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<Attachment> attachments) {
+        this.attachments = attachments;
+    }
+
+    public Set<MessageReaction> getReactions() {
+        return reactions;
+    }
+
+    public void setReactions(Set<MessageReaction> reactions) {
+        this.reactions = reactions;
+    }
+
+    public Message getParentMessage() {
+        return parentMessage;
+    }
+
+    public void setParentMessage(Message parentMessage) {
+        this.parentMessage = parentMessage;
+    }
+
+    public List<Message> getReplies() {
+        return replies;
+    }
+
+    public void setReplies(List<Message> replies) {
+        this.replies = replies;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -77,6 +173,6 @@ public class Message {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode(); // Or use id if available: return id != null ? id.hashCode() : 0;
+        return getClass().hashCode();
     }
 }

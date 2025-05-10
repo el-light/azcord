@@ -31,6 +31,25 @@ public class User {
 
     private String password; 
 
+    private String bio; 
+
+    private String avatarUrl; //URL to the user's avatar image
+
+    public String getBio() {
+        return bio;
+    }
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
 
     //we MAY have same roles for different servers
     //BUT we may also have roles with the same name and different colours

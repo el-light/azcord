@@ -30,12 +30,12 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
         this.userDetailsService = userDetailsService;
     }
 
-    @Override
+      @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
         logger.debug("Attempting WebSocket handshake...");
         String token = null;
-
+    
         if (request instanceof ServletServerHttpRequest) {
             ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
             // Try to get token from "Authorization" header (if client sends it, common for SockJS)
@@ -53,29 +53,25 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                 }
             }
         }
-
-
+    
         if (token != null) {
             try {
                 if (!jwtService.isTokenExpired(token) && jwtService.isSignatureValid(token)) {
                     String username = jwtService.extractUsername(token);
                     if (username != null) {
                         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                        // Create an Authentication object. This principal will be available in WebSocket messages.
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
                         
-                        // Store it in attributes map, which can be accessed later, e.g., to set Principal for the session
-                        attributes.put("user", authentication); // Storing the Authentication object
+                        // Create an Authentication object
+                        UsernamePasswordAuthenticationToken auth = 
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        
+                        // 1. Make it the session's Principal
+                        attributes.put("SPRING.SOCKET.PRINCIPAL", auth);
+                        
+                        // 2. Push it into the security context
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                        
                         logger.info("WebSocket handshake successful for user: {}", username);
-
-                        // If you want it directly available via @Header Principal principal in @MessageMapping methods:
-                        // The STOMP protocol has a CONNECT frame where clients can pass credentials.
-                        // Spring Security can integrate with this. For simplicity, we are associating the user
-                        // with the WebSocket session here. Spring will often make this available as the Principal
-                        // if the "user" attribute is an Authentication object or Principal.
-                        // If not directly, you can retrieve it from SimpMessageHeaderAccessor.getSessionAttributes().
-
                         return true; // Handshake approved
                     }
                 }

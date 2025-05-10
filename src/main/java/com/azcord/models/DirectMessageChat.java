@@ -1,8 +1,6 @@
 package com.azcord.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -11,8 +9,6 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-@Getter
-@Setter
 @Table(name = "direct_message_chats")
 public class DirectMessageChat {
 
@@ -24,7 +20,6 @@ public class DirectMessageChat {
     @Column(nullable = false)
     private ChatType chatType;
 
-    // For group DMs, a name might be set by users
     private String name;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -39,13 +34,77 @@ public class DirectMessageChat {
     private List<Message> messages;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "creator_id") // Optional: who initiated the DM or group DM
+    @JoinColumn(name = "creator_id")
     private User creator;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    private LocalDateTime lastActivityAt; // To sort chats by recent activity
+    private LocalDateTime lastActivityAt;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public ChatType getChatType() {
+        return chatType;
+    }
+
+    public void setChatType(ChatType chatType) {
+        this.chatType = chatType;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Set<User> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(Set<User> participants) {
+        this.participants = participants;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
+    }
+
+    public User getCreator() {
+        return creator;
+    }
+
+    public void setCreator(User creator) {
+        this.creator = creator;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getLastActivityAt() {
+        return lastActivityAt;
+    }
+
+    public void setLastActivityAt(LocalDateTime lastActivityAt) {
+        this.lastActivityAt = lastActivityAt;
+    }
 
     @Override
     public boolean equals(Object o) {

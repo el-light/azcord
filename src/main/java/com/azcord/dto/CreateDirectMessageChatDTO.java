@@ -18,4 +18,18 @@ public class CreateDirectMessageChatDTO {
 
     @Size(max = 100, message = "Group chat name cannot exceed 100 characters.")
     private String groupName; // Optional, for creating a named group DM
+
+    public Set<Long> getParticipantUserIds() {
+        return participantUserIds;
+    }
+    
+    public void setParticipantUserIds(Set<Long> participantUserIds) {
+        this.participantUserIds = participantUserIds;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    
 }

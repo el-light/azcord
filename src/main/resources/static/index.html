@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Azcord</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #36393f;
+            --bg-secondary: #2f3136;
+            --bg-tertiary: #202225;
+            --bg-input: #40444b;
+            --text-primary: #dcddde;
+            --text-muted: #b9bbbe;
+            --text-link: #0096fa;
+            --accent: #5865f2;
+            --danger: #ed4245;
+            --success: #43b581;
+            --interactive-normal: #b9bbbe;
+            --interactive-hover: #dcddde;
+            --interactive-active: #ffffff;
+            --bg-modifier-hover: rgba(79, 84, 92, 0.16);
+            --bg-modifier-active: rgba(79, 84, 92, 0.24);
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+
+        .server-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px; color: #fff; background-color: var(--bg-secondary); cursor: pointer; transition: all 0.15s ease-out; overflow: hidden; flex-shrink: 0; }
+        .server-icon:hover { border-radius: 16px; background-color: var(--accent); }
+        .server-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .server-icon.active { border-radius: 16px; background-color: var(--accent); }
+        .server-icon.user-avatar-icon { margin-top: auto; } /* Pushes user avatar to bottom */
+         .server-icon.user-avatar-icon:hover { background-color: var(--bg-input); }
+
+
+        .channel-item { padding: 6px 10px; margin: 1px 8px; border-radius: 4px; font-size: 15px; cursor: pointer; user-select: none; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .channel-item:hover { background-color: var(--bg-modifier-hover); color: var(--interactive-hover); }
+        .channel-item.active { background-color: var(--bg-modifier-active); color: var(--interactive-active); font-weight: 500; }
+        .channel-item .icon { color: var(--text-muted); }
+        .channel-item.active .icon { color: var(--interactive-active); }
+
+        .message-group { display: flex; gap: 16px; padding: 2px 4px; position: relative; margin-top:12px; }
+        .message-group:hover { background-color: rgba(4, 4, 5, 0.07); }
+        .message-group .avatar { width: 40px; height: 40px; border-radius: 50%; background-color: var(--accent); object-fit: cover; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color:white; }
+        .message-body { flex-grow: 1; }
+        .message-header { display: flex; align-items: baseline; gap: 8px; font-size: 14px; margin-bottom: 2px; }
+        .message-header .name { font-weight: 500; color: var(--text-primary); cursor: pointer; }
+        .message-header .name:hover { text-decoration: underline; }
+        .message-header .timestamp { font-size: 12px; color: var(--text-muted); }
+        .message-content { white-space: pre-wrap; font-size: 15px; line-height: 1.375rem; color: var(--text-primary); word-wrap: break-word; }
+        .message-content a { color: var(--text-link); text-decoration: underline; }
+        .message-content img.attachment-preview { max-width: 300px; max-height: 250px; border-radius: 6px; cursor: pointer; margin-top: 4px; display: block; }
+        .message-content .file-attachment { display: block; background-color: var(--bg-secondary); padding: 8px; border-radius: 4px; margin-top: 4px; color: var(--text-link); text-decoration: none; font-size: 14px; }
+        .message-content .file-attachment:hover { text-decoration: underline; }
+
+
+        .reaction-bar { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .reaction-pill { display: flex; gap: 4px; align-items: center; padding: 2px 6px; border-radius: 12px; font-size: 13px; background-color: var(--bg-input); cursor: pointer; color: var(--text-muted); user-select: none; border: 1px solid transparent; }
+        .reaction-pill:hover { border-color: var(--accent); }
+        .reaction-pill.reacted-by-user { background-color: rgba(88, 101, 242, 0.2); border-color: var(--accent); color: var(--accent); }
+
+        .message-group .hover-actions { position: absolute; right: 12px; top: -12px; opacity: 0; display: flex; gap: 4px; transition: opacity 0.1s ease-out; background-color: var(--bg-secondary); border: 1px solid var(--bg-tertiary); border-radius: 4px; padding: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .message-group:hover .hover-actions { opacity: 1; }
+        .action-btn { width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--interactive-normal); background-color: transparent; font-size: 16px; cursor: pointer; }
+        .action-btn:hover { color: var(--interactive-hover); background-color: var(--bg-modifier-hover); }
+
+        .upload-thumbnail { width: 60px; height: 60px; background-color: var(--bg-input); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; position: relative; overflow: hidden; border: 1px dashed var(--text-muted); }
+        .upload-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+        .upload-thumbnail .remove-upload { position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 50%; background-color: var(--danger); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--bg-secondary); }
+
+        .toast-notification { position: fixed; bottom: 20px; right: 20px; background-color: var(--bg-tertiary); color: var(--text-primary); padding: 12px 18px; border-radius: 6px; opacity: 0; animation: toastFadeInOut 4s forwards; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; }
+        @keyframes toastFadeInOut { 0%, 100% { opacity: 0; transform: translateY(10px); } 10%, 90% { opacity: 1; transform: translateY(0); } }
+
+        #profileModalContainer { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.7); z-index: 50; }
+        #profileModalContainer.show { display: flex; }
+        .profile-card { background-color: var(--bg-secondary); padding: 24px; border-radius: 8px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; }
+        .profile-card .avatar-container { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .profile-card .profile-avatar-display { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; background-color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 48px; color: white; cursor: pointer; border: 3px solid var(--bg-tertiary); }
+        .profile-card input[type="text"], .profile-card textarea { background-color: var(--bg-input); padding: 10px 12px; border-radius: 4px; color: var(--text-primary); width: 100%; border: 1px solid var(--bg-tertiary); }
+        .profile-card textarea { min-height: 80px; resize: vertical; }
+        .profile-card .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .profile-card .form-actions button { padding: 8px 16px; border-radius: 4px; font-weight: 500; }
+        .profile-card .form-actions .save-btn { background-color: var(--accent); color: #fff; }
+        .profile-card .form-actions .cancel-btn { background-color: transparent; color: var(--text-muted); border: 1px solid var(--text-muted); }
+
+        .tab-button.active { background-color: var(--accent) !important; color: white !important; }
+   </style>
+</head>
+<body class="h-screen w-screen overflow-hidden select-none">
+    <div id="loginScreen" class="h-full w-full flex items-center justify-center">
+        <div class="w-full max-w-sm bg-[var(--bg-secondary)] p-8 rounded-lg shadow-xl space-y-6">
+            <h1 class="text-center text-3xl font-bold text-white">Azcord</h1>
+            <input id="loginUsername" placeholder="Username" class="w-full px-4 py-3 rounded-md bg-[var(--bg-input)] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+            <input id="loginPassword" type="password" placeholder="Password" class="w-full px-4 py-3 rounded-md bg-[var(--bg-input)] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+            <button id="loginButton" class="w-full py-3 rounded-md bg-[var(--accent)] text-white font-semibold hover:bg-opacity-80 transition-colors">Login</button>
+            <p id="loginStatus" class="text-center text-sm text-red-400 h-4"></p>
+        </div>
+    </div>
+
+    <div id="appScreen" class="hidden h-full w-full flex">
+        <aside id="serverBar" class="w-18 bg-[var(--bg-tertiary)] flex flex-col items-center py-3 space-y-3 overflow-y-auto no-scrollbar">
+            <div id="dynamicServerIconsContainer" class="w-full flex flex-col items-center space-y-3">
+                </div>
+            <div id="userProfileIconContainer" class="mt-auto pt-3 border-t border-[var(--bg-primary)] w-full flex justify-center">
+                 <div id="userProfileBtn" class="server-icon user-avatar-icon">
+                    </div>
+            </div>
+        </aside>
+
+        <section class="flex-1 flex overflow-hidden">
+            <aside id="channelListBar" class="w-60 bg-[var(--bg-secondary)] flex flex-col">
+                <header id="serverNameHeader" class="h-12 flex-shrink-0 px-4 flex items-center justify-between border-b border-[var(--bg-tertiary)]">
+                    <h2 class="text-white font-semibold truncate">Select Server</h2>
+                    </header>
+                <div id="channelsAndDmsList" class="flex-1 overflow-y-auto p-2 space-y-1">
+                    </div>
+            </aside>
+
+            <div id="chatView" class="flex-1 flex flex-col bg-[var(--bg-primary)]">
+                <header id="chatHeader" class="h-12 flex-shrink-0 flex items-center justify-between px-4 bg-[var(--bg-secondary)] border-b border-[var(--bg-tertiary)]">
+                    <span id="chatName" class="text-lg font-semibold text-white"># select-a-channel</span>
+                    <button id="disconnectChatButton" class="hidden py-1 px-3 rounded-md border border-[var(--danger)] text-[var(--danger)] hover:bg-[var(--danger)] hover:text-white text-xs font-medium">Disconnect Chat</button>
+                </header>
+                <main id="messageLog" class="flex-1 overflow-y-auto p-4 space-y-1">
+                    </main>
+                <footer class="p-4 border-t border-[var(--bg-secondary)] bg-[var(--bg-primary)]">
+                    <div id="replyingToBar" class="hidden text-xs text-[var(--text-muted)] mb-1 px-1">
+                        Replying to <strong id="replyingToUser"></strong>: <span id="replyingToText" class="truncate inline-block max-w-xs"></span>
+                        <button id="cancelReplyBtn" class="ml-1 text-[var(--danger)] hover:underline">[x]</button>
+                    </div>
+                    <div class="flex items-start gap-2 bg-[var(--bg-input)] rounded-lg p-2">
+                        <button id="attachFileButton" title="Attach Files" class="p-2 rounded-full hover:bg-[var(--bg-modifier-hover)] text-[var(--interactive-normal)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </button>
+                        <input type="file" id="fileUploadInput" multiple class="hidden" />
+                        <textarea id="messageInput" rows="1" spellcheck="false" placeholder="Message #channel-name" class="flex-1 resize-none bg-transparent p-2 text-sm text-[var(--text-primary)] focus:outline-none placeholder-[var(--text-muted)] max-h-40 overflow-y-auto"></textarea>
+                        <button id="sendMessageButton" class="px-4 py-2 rounded-md bg-[var(--accent)] text-white font-semibold disabled:opacity-50 hover:bg-opacity-80 transition-colors" disabled>Send</button>
+                    </div>
+                    <div id="fileUploadPreviewContainer" class="mt-2 flex gap-2 flex-wrap">
+                        </div>
+                </footer>
+            </div>
+        </section>
+    </div>
+
+    <div id="profileModalContainer">
+        <div class="profile-card">
+            <h2 class="text-xl font-semibold text-white">Edit Profile</h2>
+            <div class="avatar-container">
+                <div id="profileModalAvatar" class="profile-avatar-display">P</div>
+                <input type="file" id="avatarFileInput" class="hidden" accept="image/*">
+                <button id="changeAvatarButton" class="text-xs text-[var(--text-link)] hover:underline">Change Avatar</button>
+            </div>
+            <div>
+                <label for="profileDisplayName" class="block text-sm font-medium text-[var(--text-muted)] mb-1">Display Name</label>
+                <input id="profileDisplayName" type="text" placeholder="Enter your display name" />
+            </div>
+            <div>
+                <label for="profileBio" class="block text-sm font-medium text-[var(--text-muted)] mb-1">Bio</label>
+                <textarea id="profileBio" placeholder="Tell us about yourself..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button id="cancelProfileButton" class="cancel-btn">Cancel</button>
+                <button id="saveProfileButton" class="save-btn">Save Changes</button>
+            </div>
+             <p id="profileModalStatus" class="text-sm text-center h-4"></p>
+        </div>
+    </div>
+
+    <script>
+    // Constants for API and WebSocket endpoints
+    const API_BASE_URL = 'http://localhost:8080/api';
+    const WS_ENDPOINT = 'http://localhost:8080/ws';
+
+    // Application state variables
+    let jwtToken = null;
+    let loggedInUser = { username: null, id: null, avatarUrl: null, bio: null }; // Store more user info
+    let currentServerId = null;
+    let currentChannelId = null;
+    let currentDmChatId = null;
+    let currentChatType = null; // 'channel' or 'dm'
+    let stompClient = null;
+    let activeSubscription = null;
+    const messageHistory = new Map(); // Store messages by chat ID to avoid re-fetching/re-rendering
+    const seenMessageIds = new Set(); // <<<<------ Make sure this line is present in your local file
+    let uploadedFiles = []; // For file attachments
+    let replyingToMessage = null; // For message replies
+
+    // DOM Element references
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => document.querySelectorAll(selector);
+
+    const loginScreen = $('#loginScreen');
+    const appScreen = $('#appScreen');
+    const loginUsernameInput = $('#loginUsername');
+    const loginPasswordInput = $('#loginPassword');
+    const loginButton = $('#loginButton');
+    const loginStatus = $('#loginStatus');
+
+    const serverBar = $('#serverBar');
+    const dynamicServerIconsContainer = $('#dynamicServerIconsContainer'); 
+    const userProfileBtn = $('#userProfileBtn');
+    const channelListBar = $('#channelListBar');
+    const serverNameHeader = $('#serverNameHeader h2');
+    const channelsAndDmsList = $('#channelsAndDmsList');
+
+    const chatView = $('#chatView');
+    const chatHeader = $('#chatHeader'); 
+    const chatName = $('#chatName'); 
+    const disconnectChatButton = $('#disconnectChatButton'); 
+    const messageLog = $('#messageLog');
+    const messageInput = $('#messageInput');
+    const sendMessageButton = $('#sendMessageButton');
+    const attachFileButton = $('#attachFileButton');
+    const fileUploadInput = $('#fileUploadInput');
+    const fileUploadPreviewContainer = $('#fileUploadPreviewContainer');
+    const replyingToBar = $('#replyingToBar');
+    const replyingToUser = $('#replyingToUser');
+    const replyingToText = $('#replyingToText');
+    const cancelReplyBtn = $('#cancelReplyBtn');
+
+    const profileModalContainer = $('#profileModalContainer');
+    const profileModalAvatar = $('#profileModalAvatar');
+    const changeAvatarButton = $('#changeAvatarButton');
+    const avatarFileInput = $('#avatarFileInput');
+    const profileDisplayNameInput = $('#profileDisplayName');
+    const profileBioInput = $('#profileBio');
+    const saveProfileButton = $('#saveProfileButton');
+    const cancelProfileButton = $('#cancelProfileButton');
+    const profileModalStatus = $('#profileModalStatus');
+
+
+    // --- UTILITY FUNCTIONS ---
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.textContent = message;
+        if (type === 'error') toast.style.backgroundColor = 'var(--danger)';
+        if (type === 'success') toast.style.backgroundColor = 'var(--success)';
+        document.body.appendChild(toast);
+        toast.addEventListener('animationend', () => toast.remove());
+    }
+
+    function createAvatarPlaceholder(name) {
+        return name ? name.charAt(0).toUpperCase() : '?';
+    }
+
+    function updateUserAvatarDisplay(element, username, avatarUrl) {
+        if (avatarUrl) {
+            element.innerHTML = `<img src="${avatarUrl}" alt="${username}" class="w-full h-full object-cover rounded-full">`;
+        } else {
+            let hash = 0;
+            for (let i = 0; i < (username || "").length; i++) {
+                hash = username.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const color = `hsl(${hash % 360}, 50%, 60%)`;
+            element.style.backgroundColor = color;
+            element.innerHTML = `<span class="flex items-center justify-center w-full h-full text-xl">${createAvatarPlaceholder(username)}</span>`;
+        }
+    }
+
+
+    // --- AUTHENTICATION ---
+    loginButton.addEventListener('click', async () => {
+        const username = loginUsernameInput.value.trim();
+        const password = loginPasswordInput.value.trim();
+        if (!username || !password) {
+            loginStatus.textContent = 'Username and password are required.';
+            return;
+        }
+        loginStatus.textContent = 'Logging in...';
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! Status: ${response.status}`);
+            }
+            jwtToken = await response.text();
+            loggedInUser.username = username;
+            
+            loginStatus.textContent = '';
+            loginScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            updateUserAvatarDisplay(userProfileBtn, loggedInUser.username, loggedInUser.avatarUrl);
+            await loadServersAndDMs();
+            showToast(`Welcome back, ${loggedInUser.username}!`, 'success');
+        } catch (error) {
+            loginStatus.textContent = `Login failed: ${error.message}`;
+            console.error('Login error:', error);
+        }
+    });
+
+    // --- SERVER AND DM LOADING & RENDERING ---
+    async function loadServersAndDMs() {
+        if (!jwtToken) return;
+        dynamicServerIconsContainer.innerHTML = '<p class="text-xs text-[var(--text-muted)]">Loading servers...</p>';
+        channelsAndDmsList.innerHTML = '<p class="px-2 py-1 text-sm text-[var(--text-muted)]">Loading DMs...</p>';
+
+        try {
+            const serversResponse = await fetch(`${API_BASE_URL}/servers`, {
+                headers: { 'Authorization': `Bearer ${jwtToken}` },
+            });
+            if (!serversResponse.ok) throw new Error(`Failed to fetch servers: ${serversResponse.status} ${await serversResponse.text()}`);
+            const serversData = await serversResponse.json();
+            renderServerList(serversData);
+
+            const dmsResponse = await fetch(`${API_BASE_URL}/dm-chats`, {
+                headers: { 'Authorization': `Bearer ${jwtToken}` },
+            });
+            if (!dmsResponse.ok) throw new Error(`Failed to fetch DMs: ${dmsResponse.status} ${await dmsResponse.text()}`);
+            const dmsData = await dmsResponse.json();
+            renderDmList(dmsData); 
+
+        } catch (error) {
+            console.error('Error loading servers/DMs:', error);
+            showToast(`Error loading initial data: ${error.message}`, 'error');
+            dynamicServerIconsContainer.innerHTML = '<p class="text-xs text-[var(--danger)]">Error loading servers.</p>';
+            channelsAndDmsList.innerHTML = '<p class="px-2 py-1 text-sm text-[var(--danger)]">Error loading DMs.</p>';
+        }
+    }
+
+    function renderServerList(servers) {
+        dynamicServerIconsContainer.innerHTML = ''; 
+        servers.forEach(server => {
+            const serverIcon = document.createElement('div');
+            serverIcon.className = 'server-icon';
+            serverIcon.title = server.name;
+            updateUserAvatarDisplay(serverIcon, server.name, server.iconUrl );
+            serverIcon.addEventListener('click', () => selectServer(server));
+            dynamicServerIconsContainer.appendChild(serverIcon);
+        });
+        
+        const addServerIcon = document.createElement('div');
+        addServerIcon.className = 'server-icon';
+        addServerIcon.textContent = '+';
+        addServerIcon.title = 'Create New Server';
+        addServerIcon.addEventListener('click', handleCreateServerPrompt);
+        dynamicServerIconsContainer.appendChild(addServerIcon);
+    }
+
+    function renderDmList(dms) {
+        const existingDmHeader = channelsAndDmsList.querySelector('.dm-list-header');
+        if (existingDmHeader) existingDmHeader.remove();
+        $$('#channelsAndDmsList .channel-item[data-dm-id]').forEach(el => el.remove());
+
+
+        const dmHeader = document.createElement('h3');
+        dmHeader.className = 'dm-list-header px-2 pt-4 pb-1 text-xs font-semibold uppercase text-[var(--text-muted)]';
+        dmHeader.textContent = 'Direct Messages';
+        channelsAndDmsList.appendChild(dmHeader);
+
+        if (!dms || dms.length === 0) {
+            const noDmsMsg = document.createElement('p');
+            noDmsMsg.className = 'channel-item italic';
+            noDmsMsg.textContent = 'No DMs yet.';
+            channelsAndDmsList.appendChild(noDmsMsg);
+            return;
+        }
+
+        dms.forEach(dm => {
+            let dmDisplayName = dm.name; 
+            if (dm.chatType === 'DIRECT_MESSAGE' && dm.participants) { 
+                const otherParticipant = dm.participants.find(p => p.username !== loggedInUser.username);
+                dmDisplayName = otherParticipant ? otherParticipant.username : 'DM with Self?'; 
+            } else if (!dmDisplayName) { 
+                 dmDisplayName = "Group Chat";
+                 if(dm.participants && dm.participants.length > 0){
+                    dmDisplayName = dm.participants.map(p=>p.username).filter(name => name !== loggedInUser.username).slice(0,2).join(', ');
+                    if (dm.participants.length -1 > 2) dmDisplayName += ` & ${dm.participants.length - 3} more`;
+                    if (!dmDisplayName && dm.participants.length ===1) dmDisplayName = "DM with Self?"; 
+                 }
+            }
+            if (!dmDisplayName) dmDisplayName = `DM #${dm.id}`;
+
+
+            const dmItem = document.createElement('div');
+            dmItem.className = 'channel-item';
+            dmItem.dataset.dmId = dm.id; 
+
+            const avatarPlaceholder = document.createElement('span');
+            avatarPlaceholder.className = 'avatar w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0';
+            updateUserAvatarDisplay(avatarPlaceholder, dmDisplayName, null ); 
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'truncate';
+            nameSpan.textContent = dmDisplayName;
+
+            dmItem.appendChild(avatarPlaceholder);
+            dmItem.appendChild(nameSpan);
+            dmItem.addEventListener('click', () => selectDmChat(dm));
+            channelsAndDmsList.appendChild(dmItem);
+        });
+    }
+    
+    async function handleCreateServerPrompt() {
+        const serverName = prompt("Enter a name for your new server:");
+        if (serverName && serverName.trim() !== "") {
+            try {
+                const response = await fetch(`${API_BASE_URL}/servers`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: serverName.trim() })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorMessage = `Server creation failed: ${response.status}`;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage = errorJson.message || errorJson.error || errorMessage;
+                    } catch (e) { /* ignore if not json */ }
+                    throw new Error(errorMessage);
+                }
+                showToast(`Server "${serverName}" created!`, 'success');
+                await loadServersAndDMs(); 
+            } catch (error) {
+                showToast(error.message, 'error');
+                console.error("Create server error:", error);
+            }
+        }
+    }
+
+    function selectServer(server) {
+        currentServerId = server.server_id; 
+        serverNameHeader.textContent = server.name;
+        
+        const dmRelatedElements = [];
+        let dmHeaderFound = false;
+        channelsAndDmsList.childNodes.forEach(node => {
+            if(node.nodeType === 1 && node.classList.contains('dm-list-header')) dmHeaderFound = true;
+            if(dmHeaderFound || (node.nodeType === 1 && node.dataset.dmId)) {
+                dmRelatedElements.push(node);
+            }
+        });
+        channelsAndDmsList.innerHTML = ''; 
+        
+        if (server.channels && server.channels.length > 0) {
+            renderChannelList(server.channels); 
+        } else {
+            const noChannels = document.createElement('p');
+            noChannels.className = 'px-2 py-1 text-sm text-[var(--text-muted)]';
+            noChannels.textContent = 'No channels in this server.';
+            channelsAndDmsList.appendChild(noChannels);
+        }
+        dmRelatedElements.forEach(el => channelsAndDmsList.appendChild(el));
+
+
+        chatName.textContent = `# select-a-channel`;
+        messageLog.innerHTML = '<p class="text-center text-[var(--text-muted)]">Select a channel or DM.</p>';
+        disconnectWebSocket();
+        currentChannelId = null;
+        currentDmChatId = null;
+        currentChatType = null;
+        sendMessageButton.disabled = true;
+        disconnectChatButton.classList.add('hidden');
+    }
+
+    function renderChannelList(channels) {
+         const channelHeader = document.createElement('h3');
+        channelHeader.className = 'px-2 pt-2 pb-1 text-xs font-semibold uppercase text-[var(--text-muted)]';
+        channelHeader.textContent = 'Text Channels';
+        channelsAndDmsList.appendChild(channelHeader);
+
+        if (!channels || channels.length === 0) {
+            const noChannelsMsg = document.createElement('p');
+            noChannelsMsg.className = 'channel-item italic';
+            noChannelsMsg.textContent = 'No channels here.';
+            channelsAndDmsList.appendChild(noChannelsMsg);
+            return;
+        }
+
+        channels.forEach(channel => {
+            const channelItem = document.createElement('div');
+            channelItem.className = 'channel-item';
+            channelItem.dataset.channelId = channel.id;
+            channelItem.innerHTML = `<span class="icon">#</span> <span class="truncate">${channel.name}</span>`;
+            channelItem.addEventListener('click', () => selectChannel(channel));
+            channelsAndDmsList.appendChild(channelItem);
+        });
+    }
+
+    function selectChannel(channel) {
+        console.log("Selected channel:", channel);
+        currentChannelId = channel.id;
+        currentDmChatId = null;
+        currentChatType = 'channel';
+        chatName.textContent = `# ${channel.name}`;
+        messageInput.placeholder = `Message #${channel.name}`;
+        setActiveChannelItem(channel.id);
+        loadAndDisplayMessages();
+    }
+
+    function selectDmChat(dm) {
+        console.log("Selected DM:", dm);
+        currentDmChatId = dm.id;
+        currentChannelId = null;
+        currentChatType = 'dm';
+        
+        let dmDisplayName = dm.name;
+        if (dm.chatType === 'DIRECT_MESSAGE' && dm.participants) {
+            const otherParticipant = dm.participants.find(p => p.username !== loggedInUser.username);
+            dmDisplayName = otherParticipant ? otherParticipant.username : 'DM';
+        } else if (!dmDisplayName) {
+             dmDisplayName = "Group Chat";
+             if(dm.participants && dm.participants.length > 0){
+                dmDisplayName = dm.participants.map(p=>p.username).filter(name => name !== loggedInUser.username).slice(0,2).join(', ');
+                 if (dm.participants.length -1 > 2) dmDisplayName += ` & ${dm.participants.length -1 - 2} more`;
+                 else if (dm.participants.length === 1 && dm.participants[0].username === loggedInUser.username) dmDisplayName = "Notes to Self"; 
+                 else if (dm.participants.length === 2 && !otherParticipant) dmDisplayName = dm.participants.map(p=>p.username).join(', '); 
+             }
+        }
+        if (!dmDisplayName) dmDisplayName = `DM #${dm.id}`;
+
+
+        chatName.textContent = `@ ${dmDisplayName}`;
+        messageInput.placeholder = `Message @${dmDisplayName}`;
+        setActiveChannelItem(dm.id, true); 
+        loadAndDisplayMessages();
+    }
+    
+    function setActiveChannelItem(id, isDm = false) {
+        $$('#channelsAndDmsList .channel-item').forEach(item => item.classList.remove('active'));
+        const items = $$('#channelsAndDmsList .channel-item');
+        for(let item of items){
+            const itemId = isDm ? item.dataset.dmId : item.dataset.channelId;
+            if(itemId == id){ 
+                 item.classList.add('active');
+                 break;
+            }
+        }
+    }
+
+    // --- MESSAGE HANDLING & WEBSOCKETS ---
+    async function loadAndDisplayMessages() {
+        if (!currentChatType || (!currentChannelId && !currentDmChatId)) {
+            messageLog.innerHTML = '<p class="text-center text-[var(--text-muted)]">Select a channel or DM to start chatting.</p>';
+            sendMessageButton.disabled = true;
+            disconnectChatButton.classList.add('hidden');
+            return;
+        }
+        messageLog.innerHTML = '<p class="text-center text-[var(--text-muted)]">Loading messages...</p>';
+        seenMessageIds.clear(); // This line was causing the error if seenMessageIds was not defined
+        replyingToMessage = null;
+        updateReplyBar();
+
+        const chatId = currentChatType === 'channel' ? currentChannelId : currentDmChatId;
+        const cacheKey = `${currentChatType}-${chatId}`;
+        
+        try {
+            const endpoint = currentChatType === 'channel' ?
+                `${API_BASE_URL}/channels/${currentChannelId}/messages?page=0&size=50` :
+                `${API_BASE_URL}/dm-chats/${currentDmChatId}/messages?page=0&size=50`;
+
+            const response = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${jwtToken}` } });
+            if (!response.ok) {
+                 const errorText = await response.text();
+                 let errorMessage = `Failed to fetch messages: ${response.status}`;
+                 try { const errorJson = JSON.parse(errorText); errorMessage = errorJson.message || errorJson.error || errorMessage; } catch (e) {}
+                 throw new Error(errorMessage);
+            }
+            const page = await response.json();
+            const messages = page.content || [];
+            messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); 
+            
+            messageHistory.set(cacheKey, messages); 
+            renderMessages(messages);
+            connectWebSocket();
+
+        } catch (error) {
+            console.error('Error loading messages:', error);
+            messageLog.innerHTML = `<p class="text-center text-[var(--danger)]">Error loading messages: ${error.message}</p>`;
+            disconnectWebSocket(); 
+        }
+    }
+    
+    function renderMessages(messages) {
+        messageLog.innerHTML = ''; 
+        if (messages.length === 0) {
+            messageLog.innerHTML = '<p class="text-center text-[var(--text-muted)]">No messages yet. Be the first to say something!</p>';
+        } else {
+            messages.forEach(displayMessage);
+        }
+        messageLog.scrollTop = messageLog.scrollHeight;
+    }
+
+    function displayMessage(msg) {
+        if (!msg || !msg.id || seenMessageIds.has(msg.id)) return; 
+        seenMessageIds.add(msg.id);
+
+        const messageGroup = document.createElement('div');
+        messageGroup.className = 'message-group';
+        messageGroup.dataset.messageId = msg.id;
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'avatar';
+        updateUserAvatarDisplay(avatarDiv, msg.sender?.username, msg.sender?.avatarUrl); 
+        messageGroup.appendChild(avatarDiv);
+
+        const messageBodyDiv = document.createElement('div');
+        messageBodyDiv.className = 'message-body';
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        headerDiv.innerHTML = `
+            <span class="name">${msg.sender?.username || 'System'}</span>
+            <span class="timestamp">${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            ${msg.edited ? '<span class="text-xs text-[var(--text-muted)]">(edited)</span>' : ''}
+        `;
+        messageBodyDiv.appendChild(headerDiv);
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = msg.content || ''; 
+        messageBodyDiv.appendChild(contentDiv);
+        
+        if (msg.attachments && msg.attachments.length > 0) {
+            msg.attachments.forEach(att => {
+                if (att.mimeType && att.mimeType.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = att.fileUrl;
+                    img.alt = att.fileName || 'attachment';
+                    img.className = 'attachment-preview';
+                    img.addEventListener('click', () => window.open(att.fileUrl, '_blank'));
+                    contentDiv.appendChild(img);
+                } else {
+                    const fileLink = document.createElement('a');
+                    fileLink.href = att.fileUrl;
+                    fileLink.target = '_blank';
+                    fileLink.className = 'file-attachment';
+                    fileLink.textContent = `📎 ${att.fileName || 'Attached File'}`;
+                    contentDiv.appendChild(fileLink);
+                }
+            });
+        }
+
+        const hoverActionsDiv = document.createElement('div');
+        hoverActionsDiv.className = 'hover-actions';
+        const replyButton = document.createElement('button');
+        replyButton.className = 'action-btn';
+        replyButton.title = 'Reply';
+        replyButton.innerHTML = '↩️'; 
+        replyButton.onclick = () => setReplyTo(msg);
+        hoverActionsDiv.appendChild(replyButton);
+        
+        messageGroup.appendChild(messageBodyDiv); 
+        messageBodyDiv.appendChild(hoverActionsDiv); 
+        messageLog.appendChild(messageGroup);
+        messageLog.scrollTop = messageLog.scrollHeight;
+    }
+
+    function setReplyTo(message) {
+        replyingToMessage = message;
+        updateReplyBar();
+        messageInput.focus();
+    }
+
+    function updateReplyBar() {
+        if (replyingToMessage) {
+            replyingToUser.textContent = replyingToMessage.sender?.username || 'Unknown';
+            replyingToText.textContent = (replyingToMessage.content || "").substring(0, 50) + ((replyingToMessage.content || "").length > 50 ? '...' : '');
+            replyingToBar.classList.remove('hidden');
+        } else {
+            replyingToBar.classList.add('hidden');
+        }
+    }
+    cancelReplyBtn.addEventListener('click', () => {
+        replyingToMessage = null;
+        updateReplyBar();
+    });
+
+    function connectWebSocket() {
+        const chatId = currentChatType === 'channel' ? currentChannelId : currentDmChatId;
+        if (!chatId) {
+            showToast('No chat selected to connect.', 'warn');
+            disconnectChatButton.classList.add('hidden');
+            return;
+        }
+
+        if (stompClient && stompClient.connected) {
+            const newTopic = currentChatType === 'channel' ?
+                `/topic/channels/${currentChannelId}/messages` :
+                `/topic/dm/${currentDmChatId}/messages`;
+            if (activeSubscription && currentChatTopic !== newTopic) {
+                activeSubscription.unsubscribe();
+                currentChatTopic = newTopic;
+                activeSubscription = stompClient.subscribe(currentChatTopic, onMessageReceived);
+                showToast(`Switched subscription to ${currentChatTopic}`, 'info');
+            } else if (!activeSubscription) {
+                 currentChatTopic = newTopic;
+                 activeSubscription = stompClient.subscribe(currentChatTopic, onMessageReceived);
+                 showToast(`Resubscribed to ${currentChatTopic}`, 'info');
+            }
+            sendMessageButton.disabled = false;
+            disconnectChatButton.classList.remove('hidden');
+            return;
+        }
+        if (!jwtToken) {
+            showToast('Cannot connect: Not logged in.', 'error');
+            disconnectChatButton.classList.add('hidden');
+            return;
+        }
+
+        const socket = new SockJS(`${WS_ENDPOINT}?token=${jwtToken}`);
+        stompClient = Stomp.over(socket);
+        stompClient.debug = (str) => { console.log("STOMP: " + str); };
+
+        showToast('Connecting to chat...', 'info');
+        disconnectChatButton.classList.add('hidden');
+
+
+        stompClient.connect(
+            {}, 
+            (frame) => { 
+                showToast(`Connected to ${currentChatType} ${chatId}`, 'success');
+                sendMessageButton.disabled = false;
+                disconnectChatButton.classList.remove('hidden');
+
+                currentChatTopic = currentChatType === 'channel' ?
+                    `/topic/channels/${chatId}/messages` :
+                    `/topic/dm/${chatId}/messages`;
+
+                activeSubscription = stompClient.subscribe(currentChatTopic, onMessageReceived);
+                stompClient.subscribe('/user/queue/errors', (errorFrame) => {
+                    try {
+                        const errorPayload = JSON.parse(errorFrame.body);
+                        showToast(`Server Error: ${errorPayload.details || errorPayload.error}`, 'error');
+                    } catch (e) { showToast(`Server Error: ${errorFrame.body}`, 'error'); }
+                });
+            },
+            (error) => { 
+                console.error('STOMP Connection Error:', error);
+                showToast(`WebSocket Connection Error: ${error.headers ? error.headers.message : error}`, 'error');
+                sendMessageButton.disabled = true;
+                disconnectChatButton.classList.add('hidden');
+            }
+        );
+    }
+
+    function disconnectWebSocket() {
+        if (activeSubscription) {
+            activeSubscription.unsubscribe();
+            activeSubscription = null;
+        }
+        if (stompClient && stompClient.connected) {
+            stompClient.disconnect(() => {
+                showToast('Disconnected from chat.', 'info');
+            });
+        }
+        sendMessageButton.disabled = true;
+        disconnectChatButton.classList.add('hidden');
+    }
+    disconnectChatButton.addEventListener('click', disconnectWebSocket);
+
+
+    function onMessageReceived(payload) {
+        console.log("Raw message received from WebSocket:", payload);
+        try {
+            const message = JSON.parse(payload.body);
+            console.log("Parsed message:", message);
+            displayMessage(message);
+            
+            const cacheKey = `${message.channelId ? 'channel' : 'dm'}-${message.channelId || message.directMessageChatId}`;
+            const existingMessages = messageHistory.get(cacheKey) || [];
+            if (!existingMessages.find(m => m.id === message.id)) { 
+                const updatedMessages = [...existingMessages, message].sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+                messageHistory.set(cacheKey, updatedMessages);
+            }
+
+        } catch (e) {
+            console.error("Error parsing incoming message:", e, payload.body);
+            showToast("Received an invalid message from server.", "error");
+        }
+    }
+
+    sendMessageButton.addEventListener('click', handleSendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    });
+
+    async function handleSendMessage() {
+        const content = messageInput.value.trim();
+        if ((!content && uploadedFiles.length === 0) || !stompClient || !stompClient.connected) {
+            if (!stompClient || !stompClient.connected) showToast('Not connected to chat.', 'error');
+            return;
+        }
+
+        const messagePayload = {
+            content: content,
+            parentMessageId: replyingToMessage ? replyingToMessage.id : null
+        };
+
+        if (currentChatType === 'channel') {
+            messagePayload.channelId = currentChannelId;
+        } else if (currentChatType === 'dm') {
+            messagePayload.directMessageChatId = currentDmChatId;
+        } else {
+            showToast('No active chat selected.', 'error');
+            return;
+        }
+
+        if (uploadedFiles.length > 0) {
+            const formData = new FormData();
+            formData.append('sendMessageDTO', new Blob([JSON.stringify(messagePayload)], { type: 'application/json' }));
+            uploadedFiles.forEach(file => formData.append('files', file));
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/messages`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${jwtToken}` },
+                    body: formData,
+                });
+                if (!response.ok) {
+                    let errorData;
+                    try {errorData = await response.json();} catch(e){ errorData = {message: await response.text()}}
+                    throw new Error(errorData.message || `Failed to send message with files: ${response.status}`);
+                }
+                showToast('Message with files sent!', 'success');
+            } catch (error) {
+                console.error('Error sending message with files:', error);
+                showToast(`Error: ${error.message}`, 'error');
+            }
+        } else { 
+            stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(messagePayload));
+        }
+
+        messageInput.value = '';
+        uploadedFiles = [];
+        fileUploadPreviewContainer.innerHTML = '';
+        replyingToMessage = null;
+        updateReplyBar();
+        messageInput.style.height = 'auto'; 
+    }
+    
+    messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = (messageInput.scrollHeight) + 'px';
+    });
+
+    // --- FILE ATTACHMENT HANDLING ---
+    attachFileButton.addEventListener('click', () => fileUploadInput.click());
+    fileUploadInput.addEventListener('change', (event) => {
+        for (const file of event.target.files) {
+            if (uploadedFiles.length < 5) { 
+                uploadedFiles.push(file);
+                renderFileUploadPreview(file);
+            } else {
+                showToast('Maximum 5 files allowed.', 'warn');
+                break;
+            }
+        }
+        fileUploadInput.value = ''; 
+    });
+
+    function renderFileUploadPreview(file) {
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'upload-thumbnail';
+        
+        if (file.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.onload = () => URL.revokeObjectURL(img.src);
+            previewDiv.appendChild(img);
+        } else {
+            previewDiv.textContent = file.name.split('.').pop().toUpperCase().substring(0, 4);
+        }
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-upload';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.onclick = () => {
+            uploadedFiles = uploadedFiles.filter(f => f !== file);
+            previewDiv.remove();
+        };
+        previewDiv.appendChild(removeBtn);
+        fileUploadPreviewContainer.appendChild(previewDiv);
+    }
+
+    // --- PROFILE MODAL ---
+    userProfileBtn.addEventListener('click', () => {
+        profileDisplayNameInput.value = loggedInUser.username; 
+        profileBioInput.value = loggedInUser.bio || '';
+        updateUserAvatarDisplay(profileModalAvatar, loggedInUser.username, loggedInUser.avatarUrl);
+        profileModalStatus.textContent = '';
+        profileModalContainer.classList.add('show');
+    });
+
+    changeAvatarButton.addEventListener('click', () => avatarFileInput.click());
+    avatarFileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                profileModalAvatar.innerHTML = `<img src="${e.target.result}" alt="avatar preview" class="w-full h-full object-cover rounded-full"/>`;
+            };
+            reader.readAsDataURL(file);
+        } else if (file) {
+            showToast('Please select an image file.', 'warn');
+        }
+    });
+
+    cancelProfileButton.addEventListener('click', () => {
+        profileModalContainer.classList.remove('show');
+        avatarFileInput.value = ''; 
+    });
+
+    saveProfileButton.addEventListener('click', async () => {
+        const newDisplayName = profileDisplayNameInput.value.trim();
+        const newBio = profileBioInput.value.trim();
+
+        if (!newDisplayName) {
+            profileModalStatus.textContent = 'Display name cannot be empty.';
+            profileModalStatus.className = 'text-sm text-center text-red-500 h-4';
+            return;
+        }
+        profileModalStatus.textContent = 'Saving...';
+        profileModalStatus.className = 'text-sm text-center text-yellow-500 h-4';
+        
+        // TODO: Implement backend API call to save profile data (PUT /api/users/me/profile)
+        // This is a placeholder for the actual API call.
+        setTimeout(() => { // Simulate API call
+            loggedInUser.username = newDisplayName; 
+            loggedInUser.bio = newBio;
+            if (avatarFileInput.files[0] && profileModalAvatar.querySelector('img')) {
+                 loggedInUser.avatarUrl = profileModalAvatar.querySelector('img').src; // This is a data URL
+            }
+            updateUserAvatarDisplay(userProfileBtn, loggedInUser.username, loggedInUser.avatarUrl);
+            showToast('Profile updated (simulated).', 'info');
+            profileModalContainer.classList.remove('show');
+            profileModalStatus.textContent = '';
+            avatarFileInput.value = ''; 
+        }, 1000);
+    });
+
+    // --- INITIALIZATION ---
+    sendMessageButton.disabled = true;
+    disconnectChatButton.classList.add('hidden'); 
+    
+</script>
+</body>
+</html>

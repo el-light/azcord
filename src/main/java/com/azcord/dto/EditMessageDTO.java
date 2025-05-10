@@ -11,4 +11,8 @@ public class EditMessageDTO {
     @NotBlank(message = "Content cannot be blank")
     @Size(max = 2000, message = "Message content cannot exceed 2000 characters")
     private String content;
+
+    public String getContent(){
+        return this.content; 
+    }
 }

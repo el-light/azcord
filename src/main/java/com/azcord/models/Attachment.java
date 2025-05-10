@@ -1,13 +1,9 @@
 package com.azcord.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Getter
-@Setter
 @Table(name = "attachments")
 public class Attachment {
 
@@ -20,23 +16,87 @@ public class Attachment {
     private Message message;
 
     @Column(nullable = false)
-    private String fileName; // Original file name
+    private String fileName;
 
     @Column(nullable = false)
-    private String fileUrl; // URL or path to the stored file
+    private String fileUrl;
 
     @Column(nullable = false)
-    private String mimeType; //"image/jpeg", "video/mp4"
+    private String mimeType;
 
-    private Long fileSize; // Size in bytes
+    private Long fileSize;
 
     private LocalDateTime uploadedAt;
 
     @Enumerated(EnumType.STRING)
-    private MessageType attachmentType; // Redundant if mimeType is good, but can be useful for quick filtering (IMAGE, VIDEO, FILE)
+    private MessageType attachmentType;
 
     @PrePersist
     protected void onCreate() {
         uploadedAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Message getMessage() {
+        return message;
+    }
+
+    public void setMessage(Message message) {
+        this.message = message;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    public void setMimeType(String mimeType) {
+        this.mimeType = mimeType;
+    }
+
+    public Long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(Long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public LocalDateTime getUploadedAt() {
+        return uploadedAt;
+    }
+
+    public void setUploadedAt(LocalDateTime uploadedAt) {
+        this.uploadedAt = uploadedAt;
+    }
+
+    public MessageType getAttachmentType() {
+        return attachmentType;
+    }
+
+    public void setAttachmentType(MessageType attachmentType) {
+        this.attachmentType = attachmentType;
     }
 }
