@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,7 +15,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.azcord.dto.ChannelCreateDTO;
 import com.azcord.dto.InviteJoinDTO;
@@ -48,7 +51,7 @@ public class ServerController {
     public ResponseEntity<?> createServer(@Valid @RequestBody ServerCreateDTO serverCreateDTO){
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName(); 
-        Server srv = serverService.createServer(serverCreateDTO.getName(), username);
+        Server srv = serverService.createServer(serverCreateDTO.getName(), username, serverCreateDTO.getDescription(), serverCreateDTO.getAvatarUrl());
 
         if (srv == null) {
             throw new DuplicateServerNameException("Server with this name already exists.");
@@ -249,6 +252,14 @@ public class ServerController {
         List<Permission> permissions = serverService.getAllPermissions();
         return ResponseEntity.ok(permissions);
     }
+
+    @PutMapping(value = "/{serverId}/icon", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<?> updateServerIcon(@PathVariable("serverId") Long serverId, @RequestParam("icon") MultipartFile icon) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        serverService.updateServerIcon(serverId, icon);
+        return ResponseEntity.ok("Server icon updated successfully.");
+    }
+
 
 
 }

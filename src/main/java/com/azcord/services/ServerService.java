@@ -1,5 +1,6 @@
 package com.azcord.services;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays; // For getAllPermissions
@@ -15,6 +16,7 @@ import org.springframework.security.access.AccessDeniedException; // For permiss
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Important for operations involving multiple saves
+import org.springframework.web.multipart.MultipartFile;
 
 import com.azcord.dto.ChannelDTO;
 import com.azcord.dto.RoleDTO;
@@ -57,6 +59,9 @@ public class ServerService {
     
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private FileStorageService fileStorageService; 
     
     // Helper method to check if user has permission to modify a server
     private void checkServerPermission(Server server, String username) {
@@ -75,7 +80,7 @@ public class ServerService {
     // @Autowired
     // private ServerService serverService; 
 
-    public Server createServer(String name, String userCreator){
+    public Server createServer(String name, String userCreator, String description, String avatarUrl){
 
         //we enforce uniqueness of the server name
         if(serverRepository.findByName(name).isPresent()){
@@ -94,6 +99,8 @@ public class ServerService {
         roles.add(role); 
         user.setRoles(roles);
         srv.getUsers().add(user); 
+        srv.setDescription(description);
+        srv.setAvatarUrl(avatarUrl);
         return serverRepository.save(srv); 
     }
 
@@ -123,7 +130,9 @@ public class ServerService {
                   })
                   .collect(Collectors.toList())
           );
-          serverDTO.setServer_id(server.getId());
+          serverDTO.setServer_id(server.getId()); 
+          serverDTO.setAvatarUrl(server.getAvatarUrl());
+          serverDTO.setDescription(server.getDescription());
     }
 
 
@@ -535,6 +544,21 @@ public class ServerService {
      */
     public List<Permission> getAllPermissions() {
         return Arrays.asList(Permission.values());
+    }
+
+
+    public void updateServerIcon(Long serverId, MultipartFile newAvatar) {
+        Server server = serverRepository.findById(serverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
+        
+        try{
+            String newAvatarUrl = fileStorageService.storeFile(newAvatar, null).getFileUrl();
+            server.setAvatarUrl(newAvatarUrl);
+        }catch(IOException e){
+            throw new RuntimeException("Failed to store the new avatar image", e);
+        }
+
+        serverRepository.save(server);
     }
 
     
