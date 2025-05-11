@@ -96,6 +96,8 @@ public class UserService {
         UserSimpleDTO usdto = new UserSimpleDTO();
         usdto.setId(user.getId());
         usdto.setUsername(user.getUsername());
+        usdto.setAvatarUrl(user.getAvatarUrl());
+        usdto.setBio(user.getBio());
         return usdto;
     }
 

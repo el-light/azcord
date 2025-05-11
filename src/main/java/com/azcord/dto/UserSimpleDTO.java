@@ -15,8 +15,10 @@ import lombok.Setter;
 public class UserSimpleDTO {
     private Long id;
     private String username;
-    // Potentially avatar URL in the future
+    private String avatarUrl; // URL to the user's avatar image
+    private String bio;
 
+    
     public String getUsername() {
         return username;
     }
