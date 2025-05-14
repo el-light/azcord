@@ -71,6 +71,12 @@ public class JwtService {
         }
     }
 
+    // Helper method for test mode
+    public boolean isInTestMode() {
+        // We can implement logic to determine if we're in test mode
+        // For now, let's return false (normal mode)
+        return false;
+    }
 
     
 }

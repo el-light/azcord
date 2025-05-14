@@ -21,17 +21,8 @@ import lombok.Data;
 
 @Entity
 @Data
-
-
-
-
-
-
 public class Role {
 
-    
-
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; 
@@ -41,7 +32,6 @@ public class Role {
     @ManyToMany(mappedBy = "roles")
     private Set<User> users;  
   
-    @ManyToOne
     @JoinColumn(name = "server_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private Server server; 

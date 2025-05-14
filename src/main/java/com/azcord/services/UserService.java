@@ -1,11 +1,20 @@
 package com.azcord.services;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.azcord.dto.UserSimpleDTO;
+import com.azcord.exceptions.UserNotFoundException;
 import com.azcord.models.User;
 import com.azcord.repositories.UserRepository;
+import com.azcord.services.MapperUtil;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class UserService {
@@ -15,6 +24,9 @@ public class UserService {
 
     @Autowired
     PasswordEncoder encoder; 
+
+    @Autowired
+    private FileStorageService fileStorageService;
 
     public User register(String username,String email, String password){
 
@@ -56,5 +68,43 @@ public class UserService {
         return userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User Not Found")); 
     }
+
+    /**
+     * Returns the ID of a user given their username
+     */
+    public Long idOf(String username) {
+        return userRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User " + username + " not found"))
+            .getId();
+    }
+
+@Transactional
+public UserSimpleDTO updateUserProfile(String currentUsername, String newUsername, MultipartFile avatar, String bio) throws IOException { // Added throws IOException
+    User user = userRepository.findByUsername(currentUsername)
+            .orElseThrow(() -> new UserNotFoundException("User " + currentUsername + " not found."));
+
+    if (StringUtils.hasText(newUsername) && !newUsername.equals(currentUsername)) {
+        if (userRepository.findByUsername(newUsername).isPresent()) {
+            throw new RuntimeException("Username '" + newUsername + "' is already taken.");
+        }
+        user.setUsername(newUsername);
+    }
+
+    // Assuming User entity has setBio and setAvatarUrl methods
+    if (bio != null) { // Allow setting bio to empty string
+        user.setBio(bio);
+    }
+
+    if (avatar != null && !avatar.isEmpty()) {
+        String avatarUrl = fileStorageService.storePublicFile(avatar); // Simplified call
+        user.setAvatarUrl(avatarUrl);
+    }
+
+    User savedUser = userRepository.save(user);
+
+    return MapperUtil.toSimple(savedUser);
+}
+
+
     
 }

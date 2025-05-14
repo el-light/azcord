@@ -31,6 +31,25 @@ public class User {
 
     private String password; 
 
+    private String bio; 
+
+    private String avatarUrl; //URL to the user's avatar image
+
+    public String getBio() {
+        return bio;
+    }
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
 
     //we MAY have same roles for different servers
     //BUT we may also have roles with the same name and different colours
@@ -44,6 +63,18 @@ public class User {
 
     @ManyToMany(mappedBy = "users")
     private List<Server> servers = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "participants", fetch = FetchType.LAZY)
+    private Set<DirectMessageChat> directMessageChats;
+
+    public Set<DirectMessageChat> getDirectMessageChats() {
+        return directMessageChats;
+    }
+
+    public void setDirectMessageChats(Set<DirectMessageChat> directMessageChats) {
+        this.directMessageChats = directMessageChats;
+    }
+
 
 
     public Long getId() {

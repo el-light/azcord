@@ -1,5 +1,6 @@
 package com.azcord.services;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays; // For getAllPermissions
@@ -15,11 +16,11 @@ import org.springframework.security.access.AccessDeniedException; // For permiss
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Important for operations involving multiple saves
+import org.springframework.web.multipart.MultipartFile;
 
 import com.azcord.dto.ChannelDTO;
-import com.azcord.dto.RoleCreateDTO; // Assuming this exists from your provided code
 import com.azcord.dto.RoleDTO;
-import com.azcord.dto.RoleUpdateDTO; // New DTO
+import com.azcord.dto.RoleUpdateDTO;
 import com.azcord.dto.ServerDTO;
 import com.azcord.exceptions.DuplicateRoleNameException; 
 
@@ -58,6 +59,9 @@ public class ServerService {
     
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private FileStorageService fileStorageService; 
     
     // Helper method to check if user has permission to modify a server
     private void checkServerPermission(Server server, String username) {
@@ -76,7 +80,7 @@ public class ServerService {
     // @Autowired
     // private ServerService serverService; 
 
-    public Server createServer(String name, String userCreator){
+    public Server createServer(String name, String userCreator, String description, String avatarUrl){
 
         //we enforce uniqueness of the server name
         if(serverRepository.findByName(name).isPresent()){
@@ -95,6 +99,8 @@ public class ServerService {
         roles.add(role); 
         user.setRoles(roles);
         srv.getUsers().add(user); 
+        srv.setDescription(description);
+        srv.setAvatarUrl(avatarUrl);
         return serverRepository.save(srv); 
     }
 
@@ -124,7 +130,9 @@ public class ServerService {
                   })
                   .collect(Collectors.toList())
           );
-          serverDTO.setServer_id(server.getId());
+          serverDTO.setServer_id(server.getId()); 
+          serverDTO.setAvatarUrl(server.getAvatarUrl());
+          serverDTO.setDescription(server.getDescription());
     }
 
 
@@ -192,7 +200,7 @@ public class ServerService {
     }
     
     // New methods for required endpoints
-    
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).MANAGE_SERVERS)")
     // 1. Change server name
     public Server updateServerName(Long serverId, String newName, String username) {
         Server server = serverRepository.findById(serverId)
@@ -211,6 +219,7 @@ public class ServerService {
     }
     
     // 2. Delete server - FIXED to handle invite records
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).ADMINISTRATOR)")
     @Transactional
     public void deleteServer(Long serverId, String username) {
         Server server = serverRepository.findById(serverId)
@@ -232,6 +241,7 @@ public class ServerService {
     }
     
     // 3. Delete channel
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).MANAGE_CHANNELS)")
     @Transactional
     public void deleteChannel(Long serverId, Long channelId, String username) {
         Server server = serverRepository.findById(serverId)
@@ -257,6 +267,7 @@ public class ServerService {
     }
     
     // 4. Change channel name
+    @PreAuthorize("@serverService.hasPermission(#serverId, authentication.name, T(com.azcord.models.Permission).MANAGE_CHANNELS)")
     public Server updateChannelName(Long serverId, Long channelId, String newName, String username) {
         Server server = serverRepository.findById(serverId)
             .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
@@ -272,7 +283,7 @@ public class ServerService {
         
         channelToUpdate.setName(newName);
         return serverRepository.save(server);
-
+    }
 
     @PreAuthorize("@serverService.hasPermission(#server_id, authentication.name, T(com.azcord.models.Permission).MANAGE_ROLES)")
     public Role createRole(Long server_id, String name, String colourHex, Set<Permission> permissions){
@@ -534,6 +545,28 @@ public class ServerService {
     public List<Permission> getAllPermissions() {
         return Arrays.asList(Permission.values());
     }
+
+
+public void updateServerIcon(Long serverId, MultipartFile newIconFile) throws IOException { // Renamed MultipartFile parameter
+    Server server = serverRepository.findById(serverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found with ID: " + serverId));
+    
+    // Add permission check here if needed: e.g., only server owner/admin can change icon
+    // String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+    // if (!hasPermission(serverId, currentUsername, Permission.MANAGE_SERVER) && !hasPermission(serverId, currentUsername, Permission.ADMINISTRATOR)) {
+    //     throw new AccessDeniedException("User does not have permission to update this server's icon.");
+    // }
+
+    if (newIconFile != null && !newIconFile.isEmpty()) {
+        String newIconUrl = fileStorageService.storePublicFile(newIconFile); // Simplified call
+        server.setAvatarUrl(newIconUrl); 
+        serverRepository.save(server);
+    } else {
+        throw new IllegalArgumentException("Icon file cannot be empty or null.");
+    }
+}
+
+
 
     
 }
