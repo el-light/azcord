@@ -12,6 +12,7 @@ import com.azcord.dto.UserSimpleDTO;
 import com.azcord.exceptions.UserNotFoundException;
 import com.azcord.models.User;
 import com.azcord.repositories.UserRepository;
+import com.azcord.services.MapperUtil;
 
 import jakarta.transaction.Transactional;
 
@@ -68,38 +69,41 @@ public class UserService {
             .orElseThrow(() -> new RuntimeException("User Not Found")); 
     }
 
-    @Transactional  
-    public UserSimpleDTO updateUserProfile(String currentUsername, String newUsername, MultipartFile avatar, String bio){
-        User user = userRepository.findByUsername(currentUsername).orElseThrow(() -> new UserNotFoundException("User"));
-        if(StringUtils.hasText(newUsername) && !newUsername.equals(currentUsername)){
-            if(userRepository.findByUsername(newUsername).isPresent()){
-                throw new RuntimeException("Username " + newUsername +" already taken"); 
-            }
-            user.setUsername(newUsername);
-        }
-
-        if(bio != null){
-            user.setBio(bio);
-        }
-
-        if(avatar!=null && !avatar.isEmpty()){
-            try{
-                String avatarUrl = fileStorageService.storeFile(avatar, null).getFileUrl(); 
-                user.setAvatarUrl(avatarUrl);
-            }catch(IOException e){
-                throw new RuntimeException("Failed to store avatar"); 
-            }
-            
-        }
-
-        userRepository.save(user); 
-        UserSimpleDTO usdto = new UserSimpleDTO();
-        usdto.setId(user.getId());
-        usdto.setUsername(user.getUsername());
-        usdto.setAvatarUrl(user.getAvatarUrl());
-        usdto.setBio(user.getBio());
-        return usdto;
+    /**
+     * Returns the ID of a user given their username
+     */
+    public Long idOf(String username) {
+        return userRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User " + username + " not found"))
+            .getId();
     }
+
+@Transactional
+public UserSimpleDTO updateUserProfile(String currentUsername, String newUsername, MultipartFile avatar, String bio) throws IOException { // Added throws IOException
+    User user = userRepository.findByUsername(currentUsername)
+            .orElseThrow(() -> new UserNotFoundException("User " + currentUsername + " not found."));
+
+    if (StringUtils.hasText(newUsername) && !newUsername.equals(currentUsername)) {
+        if (userRepository.findByUsername(newUsername).isPresent()) {
+            throw new RuntimeException("Username '" + newUsername + "' is already taken.");
+        }
+        user.setUsername(newUsername);
+    }
+
+    // Assuming User entity has setBio and setAvatarUrl methods
+    if (bio != null) { // Allow setting bio to empty string
+        user.setBio(bio);
+    }
+
+    if (avatar != null && !avatar.isEmpty()) {
+        String avatarUrl = fileStorageService.storePublicFile(avatar); // Simplified call
+        user.setAvatarUrl(avatarUrl);
+    }
+
+    User savedUser = userRepository.save(user);
+
+    return MapperUtil.toSimple(savedUser);
+}
 
 
     

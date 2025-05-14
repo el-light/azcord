@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Upload Test Utility</h1>
+    
+    <div class="container">
+        <h2>1. Test Direct File Creation</h2>
+        <p>This will create a test file directly in the uploads directory.</p>
+        <button id="createTestFile">Create Test File</button>
+        <div id="createFileResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>2. Test File Upload</h2>
+        <p>Upload a file to test if the upload functionality works.</p>
+        <input type="file" id="fileUpload" accept="image/*">
+        <button id="uploadButton">Upload File</button>
+        <div id="uploadResult"></div>
+        <img id="uploadedImage" class="image-preview" style="display:none;">
+    </div>
+    
+    <div class="container">
+        <h2>3. Check Existing File</h2>
+        <p>Enter a file path to check if it exists and is accessible.</p>
+        <input type="text" id="filePath" placeholder="/uploads/filename.jpg" value="/uploads/6820bb9f-7e2d-4779-8eae-083043c7fea2.jpg">
+        <button id="checkFileButton">Check File</button>
+        <div id="checkResult"></div>
+        <img id="checkedImage" class="image-preview" style="display:none;">
+    </div>
+    
+    <script>
+        // 1. Test Direct File Creation
+        document.getElementById('createTestFile').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('createFileResult');
+            resultDiv.innerHTML = 'Creating test file...';
+            
+            try {
+                // Create a canvas with a simple image
+                const canvas = document.createElement('canvas');
+                canvas.width = 100;
+                canvas.height = 100;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(0, 0, 100, 100);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText('Test', 30, 50);
+                
+                // Convert to blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve));
+                const formData = new FormData();
+                formData.append('file', blob, 'test-image.png');
+                
+                // Send to server
+                const response = await fetch('/api/test/file-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p class="success">File created successfully!</p>
+                        <p>File URL: ${data.fileUrl}</p>
+                        <img src="${data.fileUrl}" class="image-preview">
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<p class="error">Error: ${error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+        
+        // 2. Test File Upload
+        document.getElementById('uploadButton').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileUpload');
+            const resultDiv = document.getElementById('uploadResult');
+            const previewImg = document.getElementById('uploadedImage');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.innerHTML = '<p class="error">Please select a file first.</p>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = `Uploading ${file.name}...`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch('/api/test/file-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p class="success">File uploaded successfully!</p>
+                        <p>File URL: ${data.fileUrl}</p>
+                    `;
+                    previewImg.src = data.fileUrl;
+                    previewImg.style.display = 'block';
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<p class="error">Error: ${error}</p>`;
+                    previewImg.style.display = 'none';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                previewImg.style.display = 'none';
+            }
+        });
+        
+        // 3. Check Existing File
+        document.getElementById('checkFileButton').addEventListener('click', () => {
+            const filePath = document.getElementById('filePath').value;
+            const resultDiv = document.getElementById('checkResult');
+            const previewImg = document.getElementById('checkedImage');
+            
+            if (!filePath) {
+                resultDiv.innerHTML = '<p class="error">Please enter a file path.</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = `Checking file at ${filePath}...`;
+            
+            // Try to load the image
+            const img = new Image();
+            img.onload = () => {
+                resultDiv.innerHTML = `
+                    <p class="success">File exists and is accessible!</p>
+                    <p>Image dimensions: ${img.naturalWidth} x ${img.naturalHeight}</p>
+                `;
+                previewImg.src = filePath;
+                previewImg.style.display = 'block';
+            };
+            img.onerror = () => {
+                resultDiv.innerHTML = `
+                    <p class="error">File does not exist or is not accessible.</p>
+                    <p>Possible reasons:</p>
+                    <ul>
+                        <li>The file path is incorrect</li>
+                        <li>The file does not exist</li>
+                        <li>The file is not accessible from the web</li>
+                    </ul>
+                `;
+                previewImg.style.display = 'none';
+                
+                // Try to fetch the file to get more details
+                fetch(filePath)
+                    .then(response => {
+                        if (!response.ok) {
+                            resultDiv.innerHTML += `<p>HTTP Status: ${response.status} ${response.statusText}</p>`;
+                        }
+                    })
+                    .catch(error => {
+                        resultDiv.innerHTML += `<p>Fetch error: ${error.message}</p>`;
+                    });
+            };
+            img.src = filePath;
+        });
+    </script>
+</body>
+</html> 

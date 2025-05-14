@@ -35,7 +35,7 @@ public class MessageService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private ChannelRepository channelRepository; // Assuming this exists from your previous setup
+    private ChannelRepository channelRepository; 
     @Autowired
     private DirectMessageChatRepository dmChatRepository;
     @Autowired
@@ -325,9 +325,7 @@ public class MessageService {
 
         // Check if user is allowed to react (e.g., part of channel/DM)
         if (message.getChannel() != null) {
-            // Basic check: is user member of server?
-            // A more granular check: can user VIEW_CHANNEL and ADD_REACTIONS?
-            // ServerService.hasPermission(message.getChannel().getServer().getId(), reactorUsername, Permission.ADD_REACTIONS)
+
         } else if (message.getDirectMessageChat() != null) {
             if (!dmChatRepository.isUserParticipant(message.getDirectMessageChat().getId(), reactor.getId())) {
                 throw new ForbiddenAccessException("User cannot react to messages in this DM chat.");
@@ -467,6 +465,7 @@ public class MessageService {
         UserSimpleDTO senderDto = new UserSimpleDTO();
         senderDto.setId(message.getSender().getId());
         senderDto.setUsername(message.getSender().getUsername());
+        senderDto.setAvatarUrl(message.getSender().getAvatarUrl());
         dto.setSender(senderDto);
         dto.setContent(message.getContent());
         dto.setMessageType(message.getMessageType());
@@ -527,10 +526,7 @@ public class MessageService {
     }
 
     private UserSimpleDTO createUserSimpleDTO(User user) {
-        UserSimpleDTO dto = new UserSimpleDTO();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        return dto;
+        return MapperUtil.toSimple(user);
     }
 
     public void broadcastTypingIndicator(TypingIndicatorDTO typingIndicatorDTO, String username) {
@@ -553,6 +549,26 @@ public class MessageService {
         }
         logger.debug("Broadcasting typing indicator for user {} to {}: {}", username, destination, typingIndicatorDTO.isTyping());
         messagingTemplate.convertAndSend(destination, typingIndicatorDTO);
+    }
+
+    @Transactional
+    public MessageDTO toggleReaction(Long msgId, Long userId, String emoji){
+        Message msg = messageRepository.findById(msgId).orElseThrow();
+        MessageReaction r  = reactionRepository.findByMessageIdAndUserIdAndEmojiUnicode(msgId,userId,emoji)
+                       .orElseGet(() -> new MessageReaction(msg,userRepository.getReferenceById(userId),emoji));
+
+        if(r.getId()==null) reactionRepository.save(r);           // add
+        else                reactionRepository.delete(r);         // remove
+
+        MessageDTO dto = mapMessageToDTO(msg);
+
+        /* 📢  broadcast to topic so every client refreshes the pills */
+        String topic = msg.getDirectMessageChat() != null
+                       ? "/topic/dm/"+msg.getDirectMessageChat().getId()+"/messages/reactions/updated"
+                       : "/topic/channels/"+msg.getChannel().getId()+"/messages/reactions/updated";
+
+        messagingTemplate.convertAndSend(topic, dto);                 // SimpMessagingTemplate
+        return dto;
     }
 
 }

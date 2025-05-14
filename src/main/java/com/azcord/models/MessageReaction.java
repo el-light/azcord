@@ -30,6 +30,17 @@ public class MessageReaction {
 
     private LocalDateTime createdAt;
 
+    // Default constructor needed by JPA
+    public MessageReaction() {
+    }
+    
+    // Constructor for creating a new reaction with message, user, and emoji
+    public MessageReaction(Message message, User user, String emojiUnicode) {
+        this.message = message;
+        this.user = user;
+        this.emojiUnicode = emojiUnicode;
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

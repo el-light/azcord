@@ -547,19 +547,26 @@ public class ServerService {
     }
 
 
-    public void updateServerIcon(Long serverId, MultipartFile newAvatar) {
-        Server server = serverRepository.findById(serverId)
-            .orElseThrow(() -> new ResourceNotFoundException("Server not found"));
-        
-        try{
-            String newAvatarUrl = fileStorageService.storeFile(newAvatar, null).getFileUrl();
-            server.setAvatarUrl(newAvatarUrl);
-        }catch(IOException e){
-            throw new RuntimeException("Failed to store the new avatar image", e);
-        }
+public void updateServerIcon(Long serverId, MultipartFile newIconFile) throws IOException { // Renamed MultipartFile parameter
+    Server server = serverRepository.findById(serverId)
+            .orElseThrow(() -> new ResourceNotFoundException("Server not found with ID: " + serverId));
+    
+    // Add permission check here if needed: e.g., only server owner/admin can change icon
+    // String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+    // if (!hasPermission(serverId, currentUsername, Permission.MANAGE_SERVER) && !hasPermission(serverId, currentUsername, Permission.ADMINISTRATOR)) {
+    //     throw new AccessDeniedException("User does not have permission to update this server's icon.");
+    // }
 
+    if (newIconFile != null && !newIconFile.isEmpty()) {
+        String newIconUrl = fileStorageService.storePublicFile(newIconFile); // Simplified call
+        server.setAvatarUrl(newIconUrl); 
         serverRepository.save(server);
+    } else {
+        throw new IllegalArgumentException("Icon file cannot be empty or null.");
     }
+}
+
+
 
     
 }

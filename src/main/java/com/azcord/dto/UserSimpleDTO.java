@@ -31,4 +31,18 @@ public class UserSimpleDTO {
     public void setId(Long id) {
         this.id = id;
     }
+    
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+    
+    public String getBio() {
+        return bio;
+    }
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
 }

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Uploads Directory</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Check Uploads Directory Status</h1>
+    
+    <div class="container">
+        <h2>Directory Information</h2>
+        <button id="checkButton">Check Uploads Directory</button>
+        <div id="result">Click the button to check the uploads directory status.</div>
+    </div>
+    
+    <div class="container">
+        <h2>Create Test File</h2>
+        <button id="createFileButton">Create Test File</button>
+        <div id="createResult">Click the button to create a test file in the uploads directory.</div>
+    </div>
+    
+    <div class="container">
+        <h2>Manual File Upload</h2>
+        <input type="file" id="fileInput">
+        <button id="uploadButton">Upload File</button>
+        <div id="uploadResult"></div>
+    </div>
+    
+    <script>
+        document.getElementById('checkButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Checking uploads directory...';
+            
+            try {
+                const response = await fetch('/api/test/check-uploads-dir');
+                const data = await response.json();
+                
+                let html = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                if (data.exists && data.isDirectory) {
+                    html = '<p class="success">✅ Uploads directory exists and is accessible.</p>' + html;
+                    
+                    if (data.files && data.files.length > 0) {
+                        html += '<h3>Files in directory:</h3><ul>';
+                        data.files.forEach(file => {
+                            html += `<li><a href="/uploads/${file}" target="_blank">${file}</a></li>`;
+                        });
+                        html += '</ul>';
+                    } else {
+                        html += '<p>No files found in the directory.</p>';
+                    }
+                } else {
+                    html = '<p class="error">❌ Problem with uploads directory.</p>' + html;
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+        
+        document.getElementById('createFileButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.innerHTML = 'Creating test file...';
+            
+            try {
+                // Create a canvas with a simple image
+                const canvas = document.createElement('canvas');
+                canvas.width = 100;
+                canvas.height = 100;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(0, 0, 100, 100);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText('Test', 30, 50);
+                
+                // Convert to blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve));
+                const formData = new FormData();
+                formData.append('file', blob, 'test-image.png');
+                
+                // Send to server
+                const response = await fetch('/api/test/file-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p class="success">File created successfully!</p>
+                        <p>File URL: ${data.fileUrl}</p>
+                        <img src="${data.fileUrl}" style="max-width: 200px; border: 1px solid #ddd;">
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<p class="error">Error: ${error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+        
+        document.getElementById('uploadButton').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.innerHTML = '<p class="error">Please select a file first.</p>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = `Uploading ${file.name}...`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch('/api/test/file-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p class="success">File uploaded successfully!</p>
+                        <p>File URL: ${data.fileUrl}</p>
+                        <img src="${data.fileUrl}" style="max-width: 200px; border: 1px solid #ddd;">
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<p class="error">Error: ${error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html> 

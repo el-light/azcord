@@ -256,8 +256,12 @@ public class ServerController {
     @PutMapping(value = "/{serverId}/icon", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<?> updateServerIcon(@PathVariable("serverId") Long serverId, @RequestParam("icon") MultipartFile icon) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        serverService.updateServerIcon(serverId, icon);
-        return ResponseEntity.ok("Server icon updated successfully.");
+        try {
+            serverService.updateServerIcon(serverId, icon);
+            return ResponseEntity.ok("Server icon updated successfully.");
+        } catch (java.io.IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update server icon: " + e.getMessage());
+        }
     }
 
 

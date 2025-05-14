@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avatar Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: white;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .btn {
+            padding: 8px 16px;
+            background-color: #5865f2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Avatar Test Page</h1>
+    
+    <div class="container">
+        <h2>1. Use Static Test Avatar</h2>
+        <p>These test avatars are available directly from the static files:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <div class="avatar">
+                    <img src="/uploads/test-avatar.svg" alt="Test SVG Avatar">
+                </div>
+                <button class="btn" onclick="useAvatar('/uploads/test-avatar.svg')">Use SVG Avatar</button>
+            </div>
+            <div>
+                <div class="avatar" id="canvasAvatarContainer">
+                    <!-- Canvas avatar will be inserted here -->
+                </div>
+                <button class="btn" id="createCanvasAvatarBtn">Create Canvas Avatar</button>
+            </div>
+        </div>
+        <div id="createResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>2. Test Avatar Display</h2>
+        <input type="text" id="avatarUrl" placeholder="/uploads/filename.jpg" value="/uploads/test-avatar.svg" style="width: 300px;">
+        <button class="btn" id="testAvatarBtn">Test Avatar</button>
+        <div id="avatarContainer" style="margin-top: 10px;">
+            <div class="avatar" id="avatarDisplay">?</div>
+            <div id="testResult"></div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>3. Upload Your Own Avatar</h2>
+        <p>Note: This will only work if your backend server is running.</p>
+        <input type="file" id="avatarFile" accept="image/*">
+        <button class="btn" id="uploadBtn">Upload</button>
+        <div id="uploadResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>4. Debug Information</h2>
+        <p>Current URL: <span id="currentUrl"></span></p>
+        <p>Port: <span id="currentPort"></span></p>
+        <p>Is Dev Server: <span id="isDevServer"></span></p>
+        <div>
+            <button class="btn" id="testUrlsBtn">Test Common URL Patterns</button>
+            <div id="urlTestResults"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Fill debug info
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('currentPort').textContent = window.location.port;
+        document.getElementById('isDevServer').textContent = window.location.port === '5500' ? 'Yes' : 'No';
+        
+        // Use static avatar
+        function useAvatar(url) {
+            document.getElementById('avatarUrl').value = url;
+            document.getElementById('testAvatarBtn').click();
+        }
+        
+        // Create canvas avatar
+        document.getElementById('createCanvasAvatarBtn').addEventListener('click', () => {
+            const container = document.getElementById('canvasAvatarContainer');
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw background
+            ctx.fillStyle = '#5865f2';
+            ctx.fillRect(0, 0, 200, 200);
+            
+            // Draw text
+            ctx.fillStyle = 'white';
+            ctx.font = '80px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('T', 100, 85);
+            
+            // Add timestamp
+            ctx.font = '14px Arial';
+            ctx.fillText('Canvas Avatar', 100, 140);
+            ctx.font = '10px Arial';
+            ctx.fillText(new Date().toISOString().split('T')[0], 100, 160);
+            
+            // Convert to data URL
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            // Display in container
+            container.innerHTML = `<img src="${dataUrl}" alt="Canvas Avatar">`;
+            
+            // Add button to use this avatar
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.innerHTML = `
+                <p class="success">Canvas avatar created!</p>
+                <button class="btn" onclick="useAvatar('${dataUrl}')">Use Canvas Avatar</button>
+                <button class="btn" onclick="downloadCanvasAvatar()">Download Avatar</button>
+            `;
+            
+            // Store data URL for download
+            window.canvasAvatarDataUrl = dataUrl;
+        });
+        
+        // Download canvas avatar
+        window.downloadCanvasAvatar = function() {
+            if (window.canvasAvatarDataUrl) {
+                const link = document.createElement('a');
+                link.download = 'canvas-avatar.png';
+                link.href = window.canvasAvatarDataUrl;
+                link.click();
+            }
+        };
+        
+        // Test avatar display
+        document.getElementById('testAvatarBtn').addEventListener('click', () => {
+            const avatarUrl = document.getElementById('avatarUrl').value;
+            const avatarDisplay = document.getElementById('avatarDisplay');
+            const resultDiv = document.getElementById('testResult');
+            
+            if (!avatarUrl) {
+                resultDiv.innerHTML = '<p class="error">Please enter an avatar URL</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = `Testing avatar URL: ${avatarUrl}...`;
+            
+            // Try to load the image
+            const img = new Image();
+            img.onload = () => {
+                avatarDisplay.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+                resultDiv.innerHTML = `
+                    <p class="success">Avatar loaded successfully!</p>
+                    <p>Image dimensions: ${img.naturalWidth} x ${img.naturalHeight}</p>
+                `;
+                
+                // Try alternative paths
+                resultDiv.innerHTML += `
+                    <h3>Try these alternative paths:</h3>
+                    <ul>
+                        <li><a href="${avatarUrl}" target="_blank">Direct URL: ${avatarUrl}</a></li>
+                        <li><a href="${avatarUrl.replace('/uploads/', '/api/files/')}" target="_blank">API URL: ${avatarUrl.replace('/uploads/', '/api/files/')}</a></li>
+                    </ul>
+                `;
+            };
+            img.onerror = () => {
+                avatarDisplay.innerHTML = '?';
+                avatarDisplay.style.backgroundColor = '#f44336';
+                
+                resultDiv.innerHTML = `
+                    <p class="error">Failed to load avatar!</p>
+                    <p>URL: ${avatarUrl}</p>
+                    
+                    <h3>Try these alternative paths:</h3>
+                    <ul>
+                        <li><a href="${avatarUrl}" target="_blank">Direct URL: ${avatarUrl}</a></li>
+                        <li><a href="${avatarUrl.replace('/uploads/', '/api/files/')}" target="_blank">API URL: ${avatarUrl.replace('/uploads/', '/api/files/')}</a></li>
+                    </ul>
+                    
+                    <h3>Possible solutions:</h3>
+                    <ul>
+                        <li>Make sure the file exists in the uploads directory</li>
+                        <li>Check if the uploads directory is accessible</li>
+                        <li>Try using the API URL instead</li>
+                        <li>Use one of the static test avatars</li>
+                    </ul>
+                `;
+                
+                // Try alternative URL
+                const altImg = new Image();
+                const altUrl = avatarUrl.replace('/uploads/', '/api/files/');
+                altImg.onload = () => {
+                    avatarDisplay.innerHTML = `<img src="${altUrl}" alt="Avatar">`;
+                    resultDiv.innerHTML += `
+                        <p class="success">Alternative URL worked: ${altUrl}</p>
+                    `;
+                };
+                altImg.src = altUrl;
+            };
+            img.src = avatarUrl;
+        });
+        
+        // Upload avatar
+        document.getElementById('uploadBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('avatarFile');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.innerHTML = '<p class="error">Please select a file</p>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = `Uploading ${file.name}...`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch('/api/test/file-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">Avatar uploaded successfully!</p>
+                    <p>URL: ${data.fileUrl}</p>
+                    <div class="avatar">
+                        <img src="${data.fileUrl}" alt="Uploaded Avatar">
+                    </div>
+                    <button class="btn" onclick="useAvatar('${data.fileUrl}')">
+                        Use This Avatar
+                    </button>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error: ${error.message}</p>
+                    <p>Note: This feature requires the backend server to be running.</p>
+                    <p>If you're using a development server (port 5500), try:</p>
+                    <ul>
+                        <li>Using one of the static test avatars instead</li>
+                        <li>Running the backend server and accessing through its port (usually 8080)</li>
+                    </ul>
+                `;
+            }
+        });
+        
+        // Test common URL patterns
+        document.getElementById('testUrlsBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('urlTestResults');
+            resultDiv.innerHTML = '<p>Testing URLs...</p>';
+            
+            const testUrls = [
+                '/uploads/test-avatar.svg',
+                '/api/files/test-avatar.svg',
+                '/uploads/test-file.txt',
+                '/api/files/test-file.txt'
+            ];
+            
+            let results = '<h3>URL Test Results:</h3><ul>';
+            
+            for (const url of testUrls) {
+                try {
+                    const response = await fetch(url, { method: 'HEAD' });
+                    const status = response.ok ? 
+                        `<span class="success">✅ ${response.status} OK</span>` : 
+                        `<span class="error">❌ ${response.status} ${response.statusText}</span>`;
+                    
+                    results += `<li>${url}: ${status}</li>`;
+                } catch (error) {
+                    results += `<li>${url}: <span class="error">❌ ${error.message}</span></li>`;
+                }
+            }
+            
+            results += '</ul>';
+            resultDiv.innerHTML = results;
+        });
+        
+        // Initialize
+        document.getElementById('createCanvasAvatarBtn').click();
+    </script>
+</body>
+</html> 

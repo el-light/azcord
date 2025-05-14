@@ -163,18 +163,18 @@ public class WebSocketChatController {
         public void setReactionRequestDTO(ReactionRequestDTO reactionRequestDTO) { this.reactionRequestDTO = reactionRequestDTO; }
     }
 
-    // Handles typing indicators
-    @MessageMapping("/chat.typing")
-    public void handleTypingIndicator(@Payload TypingIndicatorDTO typingIndicatorDTO, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
-        if (principal == null || principal.getName() == null) {
-            logger.warn("Typing indicator from unauthenticated WebSocket session. SID: {}", headerAccessor.getSessionId());
-            // Don't send error for typing, just ignore
-            return;
-        }
-        String username = principal.getName();
-        // Service will set userId and username from principal and broadcast
-        messageService.broadcastTypingIndicator(typingIndicatorDTO, username);
-    }
+    // // Handles typing indicators
+    // @MessageMapping("/chat.typing")
+    // public void handleTypingIndicator(@Payload TypingIndicatorDTO typingIndicatorDTO, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
+    //     if (principal == null || principal.getName() == null) {
+    //         logger.warn("Typing indicator from unauthenticated WebSocket session. SID: {}", headerAccessor.getSessionId());
+    //         // Don't send error for typing, just ignore
+    //         return;
+    //     }
+    //     String username = principal.getName();
+    //     // Service will set userId and username from principal and broadcast
+    //     messageService.broadcastTypingIndicator(typingIndicatorDTO, username);
+    // }
 
 
     // Generic error handler for exceptions thrown from @MessageMapping methods

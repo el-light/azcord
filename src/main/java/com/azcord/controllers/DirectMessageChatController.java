@@ -3,18 +3,18 @@ package com.azcord.controllers;
 import com.azcord.dto.CreateDirectMessageChatDTO;
 import com.azcord.dto.DirectMessageChatDTO;
 import com.azcord.services.ChatService;
-import com.azcord.services.UserService; // Assuming you have this
-import com.azcord.models.User; // Assuming you have this
+import com.azcord.services.UserService;
+import com.azcord.models.User;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Set;
+import java.security.Principal;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @RestController
 @RequestMapping("/api/dm-chats")
@@ -22,9 +22,16 @@ public class DirectMessageChatController {
 
     @Autowired
     private ChatService chatService;
-
+    
     @Autowired
-    private UserService userService; // To get current user ID
+    private UserService userService;
+
+    /** Create‑or‑fetch my 1‑to‑1 chat with {friendId} */
+    @PostMapping("/with/{friendId}")
+    public DirectMessageChatDTO open(@PathVariable Long friendId, Principal p) {
+        Long me = userService.idOf(p.getName());
+        return chatService.getOrCreate(me, friendId);
+    }
 
     /**
      * Get all DM chats for the currently authenticated user.
@@ -32,7 +39,7 @@ public class DirectMessageChatController {
     @GetMapping
     public ResponseEntity<List<DirectMessageChatDTO>> getUserDirectMessageChats() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userService.getUserByName(username); // Fetch full user to get ID
+        User currentUser = userService.getUserByName(username);
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -75,7 +82,7 @@ public class DirectMessageChatController {
     public ResponseEntity<DirectMessageChatDTO> getDirectMessageChatById(@PathVariable Long chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userService.getUserByName(username);
-         if (currentUser == null) {
+        if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         DirectMessageChatDTO chatDTO = chatService.getDirectMessageChatById(chatId, currentUser.getId());
@@ -108,11 +115,11 @@ public class DirectMessageChatController {
             @PathVariable Long userIdToRemove) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User requestingUser = userService.getUserByName(username);
-         if (requestingUser == null) {
+        if (requestingUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         DirectMessageChatDTO updatedChat = chatService.removeUserFromGroupChat(chatId, userIdToRemove, requestingUser.getId());
-         if (updatedChat == null) { // Indicates chat was deleted because it became empty
+        if (updatedChat == null) { // Indicates chat was deleted because it became empty
             return ResponseEntity.ok("User removed and group chat was deleted as it became empty.");
         }
         return ResponseEntity.ok(updatedChat);

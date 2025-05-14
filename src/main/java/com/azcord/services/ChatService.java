@@ -8,6 +8,7 @@ import com.azcord.models.*;
 import com.azcord.repositories.DirectMessageChatRepository;
 import com.azcord.repositories.MessageRepository;
 import com.azcord.repositories.UserRepository;
+import com.azcord.services.MapperUtil;
 
 import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.slf4j.Logger;
@@ -149,6 +150,16 @@ public class ChatService {
         return mapDirectMessageChatToDTO(chat, requestingUserId);
     }
 
+    /**
+     * Gets or creates a 1-to-1 direct message chat between two users
+     * @param userId1 The ID of the first user
+     * @param userId2 The ID of the second user
+     * @return The DirectMessageChatDTO for the chat
+     */
+    @Transactional
+    public DirectMessageChatDTO getOrCreate(Long userId1, Long userId2) {
+        return createOrGetDirectMessageChat(userId1, userId2);
+    }
 
     /**
      * Adds a user to an existing group DM chat.
@@ -267,12 +278,7 @@ public class ChatService {
         dto.setChatType(chat.getChatType());
         
         Set<UserSimpleDTO> participantDTOs = chat.getParticipants().stream()
-                .map(p -> {
-                    UserSimpleDTO dtoUser = new UserSimpleDTO();
-                    dtoUser.setId(p.getId());
-                    dtoUser.setUsername(p.getUsername());
-                    return dtoUser;
-                })
+                .map(MapperUtil::toSimple)
                 .collect(Collectors.toSet());
         dto.setParticipants(participantDTOs);
 
