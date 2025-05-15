@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Azcord</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 3rd-party libs -->
+  <link rel="stylesheet" href="css/app.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+
+<body class="h-screen w-screen overflow-hidden select-none">
+
+  <!-- 0. LOGIN ---------------------------------------------------------------->
+  <div id="loginScreen"
+       class="h-full w-full flex items-center justify-center bg-[var(--bg-primary)]">
+    <div class="w-96 bg-[var(--bg-secondary)] rounded-lg p-6 space-y-4 shadow-lg">
+      <h1 class="text-2xl font-bold text-center text-white">Azcord Login</h1>
+
+      <input id="loginUsername"  class="input w-full"  placeholder="Username" />
+      <input id="loginPassword"  type="password" class="input w-full" placeholder="Password" />
+
+      <button id="loginButton" class="btn-primary w-full">Login</button>
+
+      <p id="loginStatus"
+         class="text-sm h-5 text-center text-[var(--text-muted)]"></p>
+    </div>
+  </div>
+
+  <!-- 1. MAIN APP ------------------------------------------------------------->
+  <div id="appScreen" class="hidden h-full w-full flex">
+
+    <!-- 1.1 SERVER BAR -------------------------------------------------------->
+    <aside id="serverBar"
+           class="w-18 bg-[var(--bg-tertiary)] flex flex-col items-center py-2 space-y-2">
+
+      <div id="dynamicServerIconsContainer"
+           class="flex flex-col items-center space-y-2 flex-1 overflow-y-auto"></div>
+
+      <!-- Friends & profile buttons -->
+      <button id="friendsTab" title="Friends"
+              class="server-icon">👥</button>
+
+      <button id="userProfileBtn" title="User Settings"
+              class="server-icon">U</button>
+    </aside>
+
+    <!-- 1.2 WORK AREA --------------------------------------------------------->
+    <section class="flex-1 flex overflow-hidden">
+
+      <!-- CHANNEL / DM LIST --------------------------------------------------->
+      <aside id="channelListBar"
+             class="w-60 bg-[var(--bg-secondary)] flex flex-col">
+
+        <header id="serverNameHeader"
+                class="h-12 flex-shrink-0 px-4 flex items-center justify-between border-b border-[var(--bg-tertiary)]">
+          <h2 class="text-white font-semibold truncate">Select Server</h2>
+
+          <!-- open server settings modal -->
+          <button id="openServerSettingsBtn" title="Server Settings"
+                  class="text-xl leading-none text-[var(--interactive-normal)] hover:text-[var(--interactive-hover)]">
+            ⚙️
+          </button>
+        </header>
+
+        <div id="channelsAndDmsList"
+             class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+      </aside>
+
+      <!-- CHAT VIEW ----------------------------------------------------------->
+      <div id="chatView" class="flex-1 flex flex-col bg-[var(--bg-primary)]">
+
+        <!-- chat header -->
+        <div id="chatHeader"
+             class="h-12 flex items-center px-4 border-b border-[var(--bg-tertiary)]">
+          <h3 id="chatName" class="text-white font-semibold flex-1">Select a channel</h3>
+          <button id="disconnectChatButton"
+                  class="btn hidden ml-4">Disconnect</button>
+        </div>
+
+        <!-- messages -->
+        <div id="messageLog" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+
+        <!-- replying-to bar -->
+        <div id="replyingToBar"
+             class="hidden px-4 py-1 bg-[var(--bg-secondary)] text-sm flex items-center gap-2">
+          <span class="icon">↩️</span>
+          <span id="replyingToUser" class="font-semibold"></span>
+          <span id="replyingToText" class="italic truncate"></span>
+          <button id="cancelReplyBtn" class="ml-auto text-sm">✖</button>
+        </div>
+
+        <!-- upload preview thumbnails -->
+        <div id="fileUploadPreviewContainer"
+             class="flex flex-wrap gap-2 px-4 py-2"></div>
+
+        <!-- composer -->
+        <div class="p-4 border-t border-[var(--bg-tertiary)] flex items-end gap-2">
+          <button id="attachFileButton" class="icon-btn">📎</button>
+          <textarea id="messageInput"
+                    rows="1"
+                    placeholder="Message …"
+                    class="flex-1 resize-none input"></textarea>
+          <button id="sendMessageButton" class="btn-primary">Send</button>
+          <input id="fileUploadInput" type="file" multiple class="hidden" />
+        </div>
+
+        <!-- typing indicator -->
+        <div id="typingIndicator"
+             class="h-6 px-4 text-sm text-[var(--text-muted)]"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 2. PROFILE MODAL -------------------------------------------------------->
+  <div id="profileModalContainer"
+       class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+    <div class="bg-[var(--bg-secondary)] p-6 rounded-lg w-80 space-y-4">
+      <div class="flex flex-col items-center gap-3">
+        <div id="profileModalAvatar"
+             class="w-24 h-24 rounded-full bg-[var(--bg-tertiary)] overflow-hidden"></div>
+        <button id="changeAvatarButton" class="btn">Change avatar</button>
+        <input id="avatarFileInput" type="file" accept="image/*" class="hidden" />
+      </div>
+
+      <input id="profileDisplayName" class="input w-full" placeholder="Display name" />
+      <textarea id="profileBio" rows="3" class="input w-full" placeholder="Bio"></textarea>
+
+      <p id="profileModalStatus"
+         class="h-4 text-sm text-center text-[var(--text-muted)]"></p>
+
+      <div class="flex justify-between">
+        <button id="cancelProfileButton" class="btn">Cancel</button>
+        <button id="saveProfileButton"   class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. FRIENDS PANE --------------------------------------------------------->
+  <aside id="friendsPane"
+         class="hidden fixed inset-y-0 right-0 w-80 bg-[var(--bg-secondary)] z-40 flex flex-col">
+
+    <div class="h-12 flex items-center px-4 border-b border-[var(--bg-tertiary)]">
+      <h3 class="flex-1 font-semibold text-white">Friends</h3>
+      <button id="closeFriendsPane" class="btn">✖</button>
+    </div>
+
+    <div class="p-4 space-y-2">
+      <input id="friendSearch"
+             class="input w-full"
+             placeholder="Search users…" />
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      <div>
+        <h4 class="section-h mb-1">Pending requests</h4>
+        <div id="pendingRequestsList" class="space-y-2"></div>
+      </div>
+
+      <div>
+        <h4 class="section-h mb-1">Friends list</h4>
+        <div id="friendsList" class="space-y-2"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 4. SERVER SETTINGS MODAL ----------------------------------------------->
+  <div id="serverSettingsModal" class="modal hidden">
+    <div class="modal-box">
+      <h3 class="modal-title">Server Settings</h3>
+
+      <!-- 4.1 Change icon / name -->
+      <div class="flex gap-4 items-center mb-4">
+        <label class="sr-only" for="serverSettingsNameInput">Server name</label>
+        <input id="serverSettingsNameInput" type="text" class="input flex-1" />
+
+        <input id="newServerIcon" type="file" accept="image/*" class="hidden" />
+        <button id="pickServerIconBtn" class="btn">📁 Icon</button>
+        <button id="saveServerInfoBtn" class="btn-primary">Save</button>
+      </div>
+
+      <!-- 4.2 Channel management -->
+      <div class="mb-4">
+        <h4 class="section-h">Channels</h4>
+        <ul id="channelsAdminList" class="space-y-1 mb-2"></ul>
+        <div class="flex gap-2">
+          <input id="newChannelName" placeholder="new-channel" class="input flex-1" />
+          <button id="createChannelBtn" class="btn-primary">Create</button>
+        </div>
+      </div>
+
+      <!-- 4.3 Role management trigger -->
+      <button id="openRolesManagerBtn" class="btn w-full">Open Role Manager</button>
+
+      <div class="flex justify-end mt-6">
+        <button id="closeServerSettingsBtn" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ROLE MANAGER MODAL --------------------------------------------------->
+  <div id="rolesModal" class="modal hidden">
+    <div class="modal-box">
+      <h3 class="modal-title">Roles &amp; Permissions</h3>
+
+      <!-- 5.1 Role list -->
+      <ul id="rolesList" class="space-y-1 mb-4"></ul>
+
+      <!-- 5.2 Create / update -->
+      <div class="flex gap-2 mb-2">
+        <input id="roleNameInput"  placeholder="Role name" class="input flex-[2]" />
+        <input id="roleColorInput" type="color" class="w-12 h-10 p-0 border rounded" />
+        <button id="createRoleBtn" class="btn-primary flex-1">Add</button>
+      </div>
+
+      <!-- 5.3 Permission matrix -->
+      <div id="permissionsMatrix"
+           class="overflow-x-auto mb-4 text-sm"></div>
+
+      <div class="flex justify-between">
+        <span id="roleOpStatus" class="text-xs text-[var(--text-muted)]"></span>
+        <button id="closeRolesModalBtn" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. SCRIPTS -------------------------------------------------------------->
+  <script src="js/main.js"></script>
+  <script src="js/roles.js"></script>
+</body>
+</html>
