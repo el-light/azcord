@@ -14,7 +14,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal; // Standard Principal
@@ -162,23 +161,26 @@ public class WebSocketChatController {
         public ReactionRequestDTO getReactionRequestDTO() { return reactionRequestDTO; }
         public void setReactionRequestDTO(ReactionRequestDTO reactionRequestDTO) { this.reactionRequestDTO = reactionRequestDTO; }
     }
-
-    // // Handles typing indicators
-    // @MessageMapping("/chat.typing")
-    // public void handleTypingIndicator(@Payload TypingIndicatorDTO typingIndicatorDTO, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
-    //     if (principal == null || principal.getName() == null) {
-    //         logger.warn("Typing indicator from unauthenticated WebSocket session. SID: {}", headerAccessor.getSessionId());
-    //         // Don't send error for typing, just ignore
-    //         return;
-    //     }
-    //     String username = principal.getName();
-    //     // Service will set userId and username from principal and broadcast
-    //     messageService.broadcastTypingIndicator(typingIndicatorDTO, username);
-    // }
+    /*
+    // Handles typing indicators
+    @MessageMapping("/chat.typing")
+    public void handleTypingIndicator(@Payload TypingIndicatorDTO typingIndicatorDTO, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
+        if (principal == null || principal.getName() == null) {
+             logger.warn("Typing indicator from unauthenticated WebSocket session. SID: {}", headerAccessor.getSessionId());
+    // Don't send error for typing, just ignore
+            return;
+          String username = principal.getName();
+    // Service will set userId and username from principal and broadcast
+        messageService.broadcastTypingIndicator(typingIndicatorDTO, username);
+    }
 
 
     // Generic error handler for exceptions thrown from @MessageMapping methods
     // This sends an error message back to the specific user who caused the error.
+
+
+
+    */
     @MessageExceptionHandler
     @SendToUser("/queue/errors") // User-specific error queue
     public WebSocketErrorMessageDTO handleException(Throwable exception, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
@@ -207,7 +209,7 @@ public class WebSocketChatController {
         // If an error needs to be sent for an *unauthenticated* user via WebSocket, it's tricky.
         // The JwtHandshakeInterceptor simply returns false, client should handle connection failure.
         
-        // This is a fallback if principal is not available but we have a session ID
+        // This is a fallback if principal is not available, but we have a session ID
         // and want to try sending. This is more complex to make reliable.
         // For now, rely on @MessageExceptionHandler and @SendToUser which uses the authenticated principal.
         // If principal is null in the message handler, it means something is wrong with auth flow.

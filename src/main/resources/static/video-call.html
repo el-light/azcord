@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Azcord Video Call</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script defer src="/video-call.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f8f8f8; }
+        video { width: 45%; margin: 10px; background: black; }
+        #videos { display: flex; justify-content: center; flex-wrap: wrap; }
+        button { margin-top: 20px; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+<h1>Azcord Channel Call</h1>
+<div id="videos">
+    <video id="localVideo" autoplay muted></video>
+    <video id="remoteVideo" autoplay></video>
+</div>
+<button onclick="startCall()">Start Call</button>
+<button id="leaveButton">Leave Call</button>
+</body>
+</html>

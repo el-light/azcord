@@ -35,6 +35,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .addInterceptors(new JwtHandshakeInterceptor(jwtService, userDetailsService))
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
+
+
+        registry.addEndpoint("/signal-ws")
+                .addInterceptors(new JwtHandshakeInterceptor(jwtService, userDetailsService))
+                .setAllowedOriginPatterns("*")
+                .withSockJS();
     }
 
     /**
