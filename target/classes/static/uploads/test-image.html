@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Image Generator</h1>
+    
+    <div>
+        <canvas id="testCanvas" width="200" height="200" style="border: 1px solid black;"></canvas>
+        <div>
+            <button id="downloadButton">Download Test Image</button>
+        </div>
+    </div>
+    
+    <script>
+        // Draw a test image
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Draw background
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(0, 0, 200, 200);
+        
+        // Draw text
+        ctx.fillStyle = 'white';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Test Image', 100, 100);
+        
+        // Add current timestamp
+        ctx.font = '12px Arial';
+        ctx.fillText(new Date().toISOString(), 100, 120);
+        
+        // Download functionality
+        document.getElementById('downloadButton').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'test-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+</body>
+</html> 

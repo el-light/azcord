@@ -1,0 +1,861 @@
+{
+  "info": {
+    "_postman_id": "e5d68f7b-f5c0-4b62-a5ae-99a8a98f6b84",
+    "name": "Azcord API",
+    "description": "Postman collection for the Azcord API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"securepassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = JSON.parse(responseBody);",
+                  "pm.environment.set(\"jwtToken\", jsonData);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"securepassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "updated_username",
+                  "type": "text",
+                  "disabled": false
+                },
+                {
+                  "key": "bio",
+                  "value": "This is my updated bio",
+                  "type": "text",
+                  "disabled": false
+                },
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": "/path/to/avatar.png",
+                  "disabled": false
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "profile"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Friends",
+      "item": [
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/search?q=username",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "username",
+                  "description": "Username search query"
+                }
+              ]
+            },
+            "description": "Search for users by username (returns top 10 matches)"
+          }
+        },
+        {
+          "name": "Send Friend Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"receiverId\": 123\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "requests"
+              ]
+            },
+            "description": "Send a friend request to another user"
+          }
+        },
+        {
+          "name": "Respond to Friend Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/requests/123e4567-e89b-12d3-a456-426614174000?accept=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "requests",
+                "123e4567-e89b-12d3-a456-426614174000"
+              ],
+              "query": [
+                {
+                  "key": "accept",
+                  "value": "true",
+                  "description": "true to accept the request, false to reject it"
+                }
+              ]
+            },
+            "description": "Accept or reject a friend request"
+          }
+        },
+        {
+          "name": "Get My Friends",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends"
+              ]
+            },
+            "description": "Get the list of current user's friends"
+          }
+        },
+        {
+          "name": "Get My Pending Friend Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "requests"
+              ]
+            },
+            "description": "Get the list of pending friend requests for the current user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Server Management",
+      "item": [
+        {
+          "name": "Create Server",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My New Server\",\n  \"description\": \"A server for testing\",\n  \"avatarUrl\": \"https://example.com/avatar.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User's Servers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Server Name",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Server Name\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/name",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "name"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Server",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Server Icon",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "icon",
+                  "type": "file",
+                  "src": "/path/to/server-icon.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/icon",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "icon"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Channel Management",
+      "item": [
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"general\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "channels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Channel Name",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"updated-channel\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "channels", "{{channelId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Channel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "channels", "{{channelId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Server Invites",
+      "item": [
+        {
+          "name": "Create Invite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/invites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "invites"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Join Server with Invite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{inviteCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "join"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Role Management",
+      "item": [
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Moderator\",\n  \"color_hex\": \"#FF5733\",\n  \"permissions\": [\"SEND_MESSAGES\", \"DELETE_MESSAGES\", \"KICK_MEMBERS\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "roles"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Server Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "roles"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User's Roles on Server",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/roles/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "roles", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Role to User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/roles/{{roleId}}/members/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "roles", "{{roleId}}", "members", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Senior Moderator\",\n  \"color_hex\": \"#33FF57\",\n  \"permissions\": [\"SEND_MESSAGES\", \"DELETE_MESSAGES\", \"KICK_MEMBERS\", \"BAN_MEMBERS\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "roles", "{{roleId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Role from User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/roles/{{roleId}}/members/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "roles", "{{roleId}}", "members", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/{{serverId}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "{{serverId}}", "roles", "{{roleId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servers/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servers", "permissions"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "File Upload Test",
+      "item": [
+        {
+          "name": "Test File Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/test-file.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/test/file-upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "test", "file-upload"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Check Uploads Directory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/test/check-uploads-dir",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "test", "check-uploads-dir"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "WebSocket Requests",
+      "item": [
+        {
+          "name": "WebSocket Connection",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{wsBaseUrl}}/ws?token={{jwtToken}}",
+              "host": ["{{wsBaseUrl}}"],
+              "path": ["ws"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Note: WebSocket requests in Postman require using the WebSocket request type, which is not fully captured in this JSON export. These are placeholders to remind you to create proper WebSocket requests in Postman."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "wsBaseUrl",
+      "value": "ws://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "serverId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "channelId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "roleId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "inviteCode",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

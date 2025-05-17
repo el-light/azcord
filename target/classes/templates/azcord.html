@@ -1,0 +1,253 @@
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Azcord QA Workbench</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SockJS & STOMP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* chat bubbles */
+    .bubble { max-width: 70%; padding: 8px 12px; border-radius: 10px; margin-bottom: 8px; }
+    .sent     { background:#3b82f6; color:#fff; margin-left:auto; border-bottom-right-radius:2px; }
+    .received { background:#e5e7eb; color:#1f2937; margin-right:auto; border-bottom-left-radius:2px; }
+    #log { height:440px; overflow-y:auto; border:1px solid #d1d5db; padding:10px; border-radius:8px; background:#f9fafb; }
+    .status  { padding:6px 10px; border-radius:6px; font-weight:500; text-align:center; }
+    .connected{ background:#d1fae5; color:#065f46; }
+    .disconnected{ background:#fee2e2; color:#991b1b; }
+    .connecting{ background:#fef3c7; color:#92400e; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center">
+  <div class="w-full max-w-5xl bg-white shadow-xl rounded-lg p-6 space-y-6">
+
+    <!-- ===== AUTH ===== -->
+    <section id="auth" class="space-y-4">
+      <h1 class="text-3xl font-bold text-center text-blue-600">Azcord QA Workbench</h1>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Username</label>
+        <input id="u" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Password</label>
+        <input id="p" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+      </div>
+      <button id="btnLogin" class="w-full py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Login</button>
+      <p id="authStatus" class="text-center text-sm"></p>
+    </section>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section id="dash" class="hidden space-y-6">
+
+      <!-- TOP BAR -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h2 class="text-2xl font-semibold">Dashboard</h2>
+        <div class="flex gap-3">
+          <button id="tabSrv" class="py-1 px-3 rounded-md bg-gray-200 hover:bg-gray-300 text-sm font-medium">Servers</button>
+          <button id="tabChat" class="py-1 px-3 rounded-md bg-gray-200 hover:bg-gray-300 text-sm font-medium">Chat</button>
+          <button id="btnLogout" class="py-1 px-3 rounded-md border border-red-500 text-red-500 hover:bg-red-50 text-sm font-medium">Logout</button>
+        </div>
+      </div>
+
+      <!-- ===== SERVER MANAGER ===== -->
+      <div id="srvPane" class="space-y-6">
+        <!-- CREATE SERVER -->
+        <div class="border p-4 rounded-lg space-y-3">
+          <h3 class="text-lg font-semibold">Create Server</h3>
+          <div class="flex gap-2">
+            <input id="srvName" placeholder="Server name" class="flex-grow px-3 py-2 border rounded-md" />
+            <button id="btnCreateSrv" class="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700">Create</button>
+          </div>
+        </div>
+
+        <!-- JOIN SERVER -->
+        <div class="border p-4 rounded-lg space-y-3">
+          <h3 class="text-lg font-semibold">Join Server with Invite</h3>
+          <div class="flex gap-2">
+            <input id="inviteCode" placeholder="Invite code" class="flex-grow px-3 py-2 border rounded-md" />
+            <button id="btnJoinSrv" class="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">Join</button>
+          </div>
+        </div>
+
+        <!-- SERVERS LIST -->
+        <div class="border p-4 rounded-lg space-y-4">
+          <h3 class="text-lg font-semibold">Your Servers</h3>
+          <div id="srvList" class="space-y-4"></div>
+        </div>
+      </div>
+
+      <!-- ===== CHAT PANE ===== -->
+      <div id="chatPane" class="hidden space-y-4">
+        <!-- CONNECT FORM -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div>
+            <label class="text-sm font-medium">Type</label>
+            <select id="chatType" class="w-full mt-1 px-3 py-2 border rounded-md">
+              <option value="channel">Channel</option>
+              <option value="dm">DM</option>
+            </select>
+          </div>
+          <div id="fieldServer" class="hidden md:col-span-1">
+            <label class="text-sm font-medium">Server</label>
+            <select id="selServer" class="w-full mt-1 px-3 py-2 border rounded-md"></select>
+          </div>
+          <div>
+            <label class="text-sm font-medium">Channel/Chat ID</label>
+            <input id="chatId" class="w-full mt-1 px-3 py-2 border rounded-md" placeholder="ID" />
+          </div>
+          <button id="btnConnect" class="w-full py-2 rounded-md bg-green-600 text-white hover:bg-green-700">Connect</button>
+        </div>
+        <div id="wsStatus" class="status disconnected">Disconnected</div>
+
+        <!-- MESSAGE LOG -->
+        <div id="log" class="space-y-2"></div>
+
+        <!-- COMPOSER -->
+        <div class="flex gap-2">
+          <textarea id="msgInput" rows="2" class="flex-grow px-3 py-2 border rounded-md" placeholder="Type message…"></textarea>
+          <button id="btnSend" class="px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" disabled>Send</button>
+        </div>
+      </div>
+
+      <p id="info" class="text-sm text-gray-600"></p>
+    </section>
+  </div>
+
+<script>
+/***** CONFIG *****/
+const API = 'http://localhost:8080/api';
+const WS  = 'http://localhost:8080/ws';
+
+/***** STATE *****/
+let token=null, user=null, servers=[], client=null, sub=null, topic=null, seen=new Set();
+
+/***** HELPERS *****/
+const $ = id=>document.getElementById(id);
+const setInfo = (msg,l='info')=>{ const c={info:'text-gray-600',warn:'text-amber-600',err:'text-red-600'}; $('info').textContent=`[${new Date().toLocaleTimeString()}] ${msg}`; $('info').className=`text-sm ${c[l]||c.info}`; };
+const status = (msg,t)=>{ $('wsStatus').textContent=msg; $('wsStatus').className=`status ${t}`; };
+const authStatus = (msg,cls)=>{ $('authStatus').textContent=msg; $('authStatus').className=`text-sm ${cls}`; };
+const authHeader = () => ({ 'Authorization': 'Bearer ' + token });
+
+/***** AUTH *****/
+$('btnLogin').onclick=async()=>{
+  const u=$('u').value.trim(), p=$('p').value.trim();
+  if(!u||!p){ authStatus('Username & password required','text-red-500'); return; }
+  authStatus('Logging in…','text-yellow-600');
+  try{
+    const r=await fetch(`${API}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    if(!r.ok) throw new Error(await r.text()||r.status);
+    const rawToken = await r.text();
+    token = rawToken.replace(/^\"|\"$/g, '').trim(); user=u; authStatus('Success','text-green-600');
+    $('auth').classList.add('hidden'); $('dash').classList.remove('hidden');
+    await loadServers();
+  }catch(e){ authStatus(`Login failed: ${e.message}`,'text-red-500'); }
+};
+$('btnLogout').onclick=()=>{ location.reload(); };
+
+/***** TABS *****/
+$('tabSrv').onclick=()=>{ $('srvPane').classList.remove('hidden'); $('chatPane').classList.add('hidden'); };
+$('tabChat').onclick=()=>{ $('chatPane').classList.remove('hidden'); $('srvPane').classList.add('hidden'); refreshServerDropdown(); };
+
+/***** SERVER OPS *****/
+async function loadServers(){
+  try{
+    const r=await fetch(`${API}/servers`,{headers:authHeader()});
+    if(!r.ok) throw new Error(r.status);
+    servers=await r.json(); renderServers(); refreshServerDropdown();
+  }catch(e){ setInfo(`Could not fetch servers: ${e.message}`, 'warn'); }
+}
+function renderServers(){
+  const list=$('srvList'); list.innerHTML='';
+  servers.forEach(s=>{
+    const div=document.createElement('div'); div.className='border p-4 rounded-md space-y-3';
+    div.innerHTML=`<div class="flex justify-between items-center"><span class="font-semibold">${s.name} (#${s.server_id})</span><button class="px-2 py-1 text-xs bg-indigo-600 text-white rounded-md" data-sid="${s.server_id}">Invite</button></div>`;
+    const chans=document.createElement('ul'); chans.className='list-disc ml-6';
+    (s.channels||[]).forEach(c=>{ const li=document.createElement('li'); li.textContent=`${c.name} (#${c.id})`; chans.appendChild(li); });
+    // create channel form
+    const form=document.createElement('div'); form.className='flex gap-2 mt-2';
+    form.innerHTML=`<input class="flex-grow px-2 py-1 border rounded-md" placeholder="New channel name"/><button class="px-2 py-1 bg-green-600 text-white rounded-md" data-create="${s.server_id}">Add</button>`;
+    div.appendChild(chans); div.appendChild(form); list.appendChild(div);
+  });
+
+  // hook invite buttons
+  list.querySelectorAll('button[data-sid]').forEach(btn=>btn.onclick=createInvite);
+  // hook channel create buttons
+  list.querySelectorAll('button[data-create]').forEach(btn=>btn.onclick=createChannel);
+}
+$('btnCreateSrv').onclick=async()=>{
+  const name=$('srvName').value.trim(); if(!name) return;
+  try{
+    const r=await fetch(`${API}/servers`,{method:'POST',headers:{ ...authHeader(), 'Content-Type':'application/json' },body:JSON.stringify({name})});
+    if(!r.ok) throw new Error(await r.text()||r.status);
+    setInfo(`Server '${name}' created.`); $('srvName').value=''; await loadServers();
+  }catch(e){ setInfo(`Create server error: ${e.message}`,'err'); }
+};
+$('btnJoinSrv').onclick=async()=>{
+  const code=$('inviteCode').value.trim(); if(!code) return;
+  try{
+    const r=await fetch(`${API}/servers/join`,{method:'POST',headers:{ ...authHeader(), 'Content-Type':'application/json' },body:JSON.stringify({code})});
+    if(!r.ok) throw new Error(await r.text()||r.status);
+    setInfo('Joined server successfully','info'); $('inviteCode').value=''; await loadServers();
+  }catch(e){ setInfo(`Join error: ${e.message}`,'err'); }
+};
+async function createInvite(e){
+  const sid=e.currentTarget.dataset.sid;
+  try{
+    const r=await fetch(`${API}/servers/${sid}/invites`,{method:'POST',headers:authHeader()});
+    if(!r.ok) throw new Error(await r.text()||r.status);
+    const code=await r.text(); prompt('Invite code generated (valid 7 days):',code);
+  }catch(err){ setInfo(`Invite error: ${err.message}`,'err'); }
+}
+async function createChannel(e){
+  const sid=e.currentTarget.dataset.create;
+  const input=e.currentTarget.parentElement.querySelector('input');
+  const name=input.value.trim(); if(!name) return;
+  try{
+    const r=await fetch(`${API}/servers/${sid}/channels`,{method:'POST',headers:{ ...authHeader(), 'Content-Type':'application/json' },body:JSON.stringify({name})});
+    if(!r.ok) throw new Error(await r.text()||r.status);
+    setInfo(`Channel '${name}' created.`); input.value=''; await loadServers();
+  }catch(err){ setInfo(`Create channel error: ${err.message}`,'err'); }
+}
+function refreshServerDropdown(){
+  const sel=$('selServer'); sel.innerHTML='';
+  servers.forEach(s=>{ const opt=document.createElement('option'); opt.value=s.server_id; opt.textContent=`${s.name} (#${s.server_id})`; sel.appendChild(opt); });
+}
+
+/***** WEBSOCKET CHAT *****/
+$('chatType').onchange=()=>{ const type=$('chatType').value; $('fieldServer').classList.toggle('hidden',type!=='channel'); };
+$('btnConnect').onclick=()=>{
+  if(client && client.connected){ setInfo('Already connected.','warn'); return; }
+  const type=$('chatType').value; let chatId=$('chatId').value.trim();
+  if(type==='channel') chatId=chatId||$('selServer').value; // allow selecting channel id manually if desired
+  if(!chatId){ setInfo('Chat ID required.','err'); return; }
+  // membership check for channels
+  if(type==='channel' && !servers.some(s=>s.channels.some(c=>c.id==chatId))){ setInfo('You are not member of channel.','err'); return; }
+  // connect
+  const sock=new SockJS(`${WS}?token=${token}`); client=Stomp.over(sock); client.debug=null;
+  status('Connecting…','connecting');
+  client.connect({},()=>{
+    status(`Connected to ${type} #${chatId}`,'connected'); $('btnSend').disabled=false;
+    topic=type==='channel'?`/topic/channels/${chatId}/messages`:`/topic/dm/${chatId}/messages`;
+    sub=client.subscribe(topic,m=>{ if(!m.body) return; try{ showMsg(JSON.parse(m.body)); }catch(e){ console.error('parse err',e); } });
+    client.subscribe('/user/queue/errors',f=>{ let b=f.body; try{b=JSON.parse(b);}catch(_){ } setInfo(`WS error: ${b.error||b}`,'err'); });
+  },err=>{ status(`Error: ${err}`,'disconnected'); });
+};
+$('btnSend').onclick=()=>{
+  const content=$('msgInput').value.trim(); if(!content) return;
+  if(!client||!client.connected){ setInfo('Not connected.','err'); return; }
+  const dto={content}; const id=parseInt($('chatId').value.trim());
+  if($('chatType').value==='channel') dto.channelId=id; else dto.directMessageChatId=id;
+  client.send('/app/chat.sendMessage',{},JSON.stringify(dto)); $('msgInput').value='';
+};
+function showMsg(m){ if(m.id && seen.has(m.id)) return; if(m.id) seen.add(m.id);
+  const b=document.createElement('div'); b.className=`bubble ${m.sender?.username===user?'sent':'received'} break-words`;
+  b.innerHTML=`<span class="font-semibold text-xs block mb-1">${m.sender?.username||'System'}</span><p>${m.content||''}</p><span class="text-xs opacity-75 block mt-1 text-right">${m.createdAt?new Date(m.createdAt).toLocaleTimeString():''}</span>`;
+  $('log').appendChild(b); $('log').scrollTop=$('log').scrollHeight;
+}
+</script>
+</body>
+</html> {% endcomment %}

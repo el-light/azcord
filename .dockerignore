@@ -1,0 +1,14 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Git
+.git
+.gitignore
+
+# IDEs
+.vscode/
+.idea/
+
+# local logs, temp files
+*.log

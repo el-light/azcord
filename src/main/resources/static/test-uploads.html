@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Directory Test</title>
+</head>
+<body>
+    <h1>Testing Upload Directory Access</h1>
+    
+    <p>This page tests if the uploads directory is accessible.</p>
+    
+    <div>
+        <h2>Test 1: Direct Image Tag</h2>
+        <p>Testing with the avatar URL: <span id="avatarUrl"></span></p>
+        <img id="testImage" src="" alt="Test Image" style="max-width: 200px; border: 1px solid red;">
+        <div id="imageStatus"></div>
+    </div>
+    
+    <script>
+        // Get the avatar URL from the console output
+        const avatarUrl = '/uploads/6820bb9f-7e2d-4779-8eae-083043c7fea2.jpg';
+        document.getElementById('avatarUrl').textContent = avatarUrl;
+        
+        // Test loading the image
+        const img = document.getElementById('testImage');
+        img.src = avatarUrl;
+        
+        img.onload = function() {
+            document.getElementById('imageStatus').innerHTML = 
+                '<p style="color: green;">✅ Image loaded successfully!</p>' +
+                `<p>Image dimensions: ${img.naturalWidth} x ${img.naturalHeight}</p>`;
+        };
+        
+        img.onerror = function() {
+            document.getElementById('imageStatus').innerHTML = 
+                '<p style="color: red;">❌ Failed to load image!</p>' +
+                '<p>Possible reasons:</p>' +
+                '<ul>' +
+                '<li>The uploads directory does not exist</li>' +
+                '<li>The file does not exist in the uploads directory</li>' +
+                '<li>The uploads directory is not accessible from the web</li>' +
+                '</ul>';
+        };
+    </script>
+</body>
+</html> 
